@@ -7,9 +7,17 @@ This is a terraform plan that:
 3) In that VPC: Creates an Internet Gateway
 4) In that VPC: Creates Routing tables
 5) Creates a key pair - commented as you'll use an existing key pair
-6) Creates a Security Group
-7) Instantiate one server in one of the Public subnets
-8) As part of instantiation, assign the sg created earlier and adds a public IP
+6) Gets the SG CIDR blocks (list) from SSM
+7) Creates a Security Group
+8) Instantiate one server in one of the Public subnets
+9) As part of instantiation, assign the sg created earlier and adds a public IP
+
+## Create an SSM parameter via console UI (not coded here)
+1. Enter AWS Systems Manager
+2. Click Parameter Store
+3. Click Create Parameter
+4. Create a StringList type parameter with name used in your terraform
+5. Enter the CIDR list into values field, no spaces or quotes. E.g 123.123.123.123/32,224.242.224.0/24,10.0.0.0/16
 
 ## tf-files Install Instructions
 
@@ -29,7 +37,6 @@ https://www.terraform.io/intro/getting-started/install.html
 
 ### tf-files Configuration Instructions:
 
-auth.tf:  modify public_key_path and key_name to match your environment
 
 main.tf:  modify key_name to an SSH key pair you already created in AWS
 
@@ -49,6 +56,8 @@ To cleanup, run: terraform destroy
 ## Maintainers
 
 AndrewSimon
+Written: 2016
+Modified: 12/2/2025 
 
 ### Copyright and license
 
