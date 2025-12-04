@@ -37,10 +37,17 @@ https://www.terraform.io/intro/getting-started/install.html
 
 ### tf-files Configuration Instructions:
 
+cd tf-files
 
-main.tf:  modify key_name to an SSH key pair you already created in AWS
+variables.tf:  
+1) modify key_name to an SSH key pair name you already created in AWS and it's public key file path you saved locally<BR/>
+2) Update the ami_id default value to an existing AMI in your region (the one used in the example has been unpublished)
 
-config.tf: modify your aws key and aws secret to match your AWS account
+config.tf:  
+1) Change the name of the bucket used for s3 backend  and update your region, if not <b>us-east-1</b>.
+
+main.tf:
+1) Nothing needs to change.  To change 'Test2' to another VPC name, replace all occurrences of the string "Test2" with a VPC name you like
 
 
 ### Running command-line Terraform commands to test, execute and destroy tf-files

@@ -127,15 +127,10 @@ resource "aws_security_group" "default" {
   }
 }
 
-#resource "aws_key_pair" "auth" {
-#  key_name   = "${var.key_name}"
-#  public_key = "${file(var.public_key_path)}"
-#}
-
 resource "aws_instance" "tf-instance" {
   ami   = "${var.ami_id}"
   associate_public_ip_address = true
-  instance_type = "t3a.micro"
+  instance_type = "${var.instance_type}"
   subnet_id = "${aws_subnet.Public_1D.id}"
   key_name   = "${var.key_name}"
   vpc_security_group_ids = [

@@ -13,13 +13,19 @@ variable "key_name" {
   default = "AWS Work"
 }
 
+variable "instance_type" {
+  description = "Instance Type"
+  default = "t3a.micro"
+}
+
 variable "ami_id" {
   description = "The AMI ID for the EC2 instance."
   type        = string
   default = "ami-4f39af58"
 }
 
+# CIDRs are stashed in SSM parameter store
 #variable "cidr_blocks" {
 # description = "List of CIDR blocks allowed for ingress rules."
 # type        = list(string)
-#
+

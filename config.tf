@@ -12,7 +12,9 @@ terraform {
     region = "us-east-1"
   }
 }
-#resource "aws_key_pair" "auth" {
-#  key_name   = "${var.key_name}"
-#  public_key = "${file(var.public_key_path)}"
-#}
+
+# Specify file path in variables.tf or replace var with pub key material here
+resource "aws_key_pair" "auth" {
+  key_name   = "${var.key_name}"
+  public_key = "${file(var.public_key_path)}" 
+}
