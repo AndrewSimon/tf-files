@@ -1,0 +1,38 @@
+name: List S3 Bucket via cURL (Python Signed)
+
+on: [push]
+
+jobs:
+  list-s3:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # Required for OIDC authentication
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          # Use OpenID Connect (OIDC) for enhanced security (recommended)
+          role-to-assume: arn:aws:iam::217619353190:policy/spot_policy
+          aws-region: us-east-1
+          # Alternatively, for access keys use:
+          # aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          # aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Python dependencies
+        run: pip install boto3 requests
+
+      - name: Run Python script to list S3 via cURL
+        run: python s3_curl_list.py
+        env:
+          S3_BUCKET_NAME: win11-tlc
+
+
