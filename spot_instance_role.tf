@@ -81,3 +81,15 @@ resource "aws_iam_instance_profile" "spot_instance_profile" {
   name = "spot_instance_profile"
   role = aws_iam_role.spot_instance_role.name
 }
+
+output "role_arn" {
+  value = data.aws_iam_role.spot_instance_role.arn
+}
+
+data "aws_iam_role" "spot_instance_role" {
+  name = "spot_instance_role"
+}
+
+output "assume_role_policy_document" {
+  value = data.aws_iam_role.spot_instance_role.assume_role_policy
+}
