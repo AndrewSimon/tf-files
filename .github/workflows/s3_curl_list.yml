@@ -16,7 +16,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           # Use OpenID Connect (OIDC) for enhanced security (recommended)
-          role-to-assume: arn:aws:iam::217619353190:policy/spot_policy
+          role-to-assume: arn:aws:iam::217619353190:role/spot_instance_role
           aws-region: us-east-1
           # Alternatively, for access keys use:
           # aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
