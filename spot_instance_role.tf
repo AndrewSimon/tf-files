@@ -3,22 +3,38 @@
 #   region = "us-east-1"
 # }
 
+# Create the policy document to be later assumed by the role
+data "aws_iam_policy_document" "gh_assume_role" {
+  statement {
+    effect = "Allow"
+
+    principals {
+      type        = "Federated"
+      identifiers = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:oidc-provider/token.actions.githubusercontent.com"]
+    }
+
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "token.actions.githubusercontent.com:aud"
+      values   = ["sts.amazonaws.com"]
+    }
+
+    condition {
+      test     = "StringLike"
+      variable = "token.actions.githubusercontent.com:sub"
+      values   = ["repo:AndrewSimon/tf-files:*"]
+    }
+  }
+}
+
+data "aws_caller_identity" "current" {}
+
 # IAM Role that the EC2 instance will assume
 resource "aws_iam_role" "spot_instance_role" {
   name = "spot_instance_role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Action = "sts:AssumeRole",
-        Principal = {
-          Service = "ec2.amazonaws.com"
-        },
-        Effect = "Allow",
-      },
-    ],
-  })
+  assume_role_policy = data.aws_iam_policy_document.gh_assume_role.json
 }
 
 # IAM policy for the spot instance requests with specific conditions
@@ -56,7 +72,7 @@ resource "aws_iam_policy" "spot_policy" {
           "ec2:DescribeTags",
           "ec2:DescribeLaunchTemplates",
           "ec2:DescribeImages",
-          "ec2:DescribeSubnets"
+          "ec2:DescribeSubnets"       
         ],
         Resource = "*"
       },
@@ -65,6 +81,14 @@ resource "aws_iam_policy" "spot_policy" {
         Effect = "Allow",
         Action = "iam:PassRole",
         Resource = aws_iam_role.spot_instance_role.arn
+      },
+      {
+        Effect = "Allow",
+        Action = [
+          "s3:GetBucketLocation", 
+          "s3:ListBucket"
+        ],
+        Resource = "arn:aws:s3:::win11-tlc" 
       }
     ]
   })

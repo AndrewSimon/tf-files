@@ -4,7 +4,8 @@ on: [push]
 
 jobs:
   list-s3:
-    runs-on: ubuntu-latest
+    #runs-on: ubuntu-latest
+    runs-on: self-hosted
     permissions:
       id-token: write # Required for OIDC authentication
       contents: read
