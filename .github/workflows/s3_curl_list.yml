@@ -6,6 +6,7 @@ jobs:
   list-s3:
     #runs-on: ubuntu-latest
     runs-on: self-hosted
+    environment: public 
     permissions:
       id-token: write # Required for OIDC authentication
       contents: read
@@ -14,25 +15,30 @@ jobs:
         uses: actions/checkout@v4
         
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v5
         with:
           # Use OpenID Connect (OIDC) for enhanced security (recommended)
-          role-to-assume: arn:aws:iam::217619353190:role/spot_instance_role
+          role-to-assume: arn:aws:iam::${{ secrets.ACCOUNT_NAME }}:role/spot_instance_role
           aws-region: us-east-1
           # Alternatively, for access keys use:
           # aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           # aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.9'
+      - name: Install Python and Dependencies
+        run: |
+             if ! command -v pip3 &> /dev/null
+             then
+                echo "pip3 not found, installing..."
+                sudo dnf install python pip -y
+                pip install boto3 requests 
+             else
+                echo "pip3 is already installed, continuing..."
+             fi
 
-      - name: Install Python dependencies
-        run: pip install boto3 requests
-
-      - name: Run Python script to list S3 via cURL
-        run: python s3_curl_list.py
+      - name: Run Python shell commands to check for S3 bucket via boto3
+        shell: python
+        run:  |
+          import os; import boto3; import botocore.exceptions; bucket_name = os.getenv("S3_BUCKET_NAME"); s3 = boto3.client("s3"); print(f"Bucket '{bucket_name}' exists") if s3.head_bucket(Bucket=bucket_name) else print(f"Bucket '{bucket_name}' does not exist") if not isinstance(e := None, botocore.exceptions.ClientError) or e.response["Error"]["Code"] != "404" else None;
         env:
           S3_BUCKET_NAME: win11-tlc
 
