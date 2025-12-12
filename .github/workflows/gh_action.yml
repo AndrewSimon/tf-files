@@ -1,4 +1,4 @@
-name: List S3 Bucket via cURL (Python Signed)
+name: Runs dependency installs and ad hoc build on ephemeral gh runners
 
 on: [push]
 
@@ -20,9 +20,6 @@ jobs:
           # Use OpenID Connect (OIDC) for enhanced security (recommended)
           role-to-assume: arn:aws:iam::${{ secrets.ACCOUNT_NAME }}:role/spot_instance_role
           aws-region: us-east-1
-          # Alternatively, for access keys use:
-          # aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          # aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
       - name: Install Python and Dependencies
         run: |
