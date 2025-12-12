@@ -52,7 +52,7 @@ resource "aws_iam_policy" "spot_policy" {
           "ec2:RequestSpotInstances",
           "ec2:RunInstances" # RequestSpotInstances might use RunInstances internally
         ],
-        Resource = "*", # Resource-level permissions might not be supported for RequestSpotInstances condition keys
+        Resource = "arn:aws:ec2:*:*:instance/*", # Resource-level permissions might not be supported for RequestSpotInstances condition keys
         Condition = {
           "StringEquals" = {
             "ec2:InstanceType"        = "t3a.micro",
@@ -75,6 +75,12 @@ resource "aws_iam_policy" "spot_policy" {
           "ec2:DescribeSubnets"       
         ],
         Resource = "*"
+      },
+      {
+        Sid = "AllowPassingRoleToLambda",
+        Effect = "Allow",
+        Action = "iam:PassRole",
+        Resource = aws_iam_role.spot_instance_role.arn
       },
       {
         Sid = "AllowPassingRoleToEC2",
@@ -114,6 +120,6 @@ data "aws_iam_role" "spot_instance_role" {
   name = "spot_instance_role"
 }
 
-output "assume_role_policy_document" {
-  value = data.aws_iam_role.spot_instance_role.assume_role_policy
-}
+#output "assume_role_policy_document" {
+#  value = data.aws_iam_role.spot_instance_role.assume_role_policy
+#}

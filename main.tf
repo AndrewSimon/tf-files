@@ -142,4 +142,10 @@ resource "aws_instance" "tf-instance" {
   tags     = {
     "Name" = "TLC" 
      }
+  lifecycle {
+    ignore_changes = [
+      ## configurable ami is not used for termination protected instances
+      ami
+    ]
+  } 
 }

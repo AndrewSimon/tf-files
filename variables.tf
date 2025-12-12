@@ -3,6 +3,11 @@ variable "aws_region" {
   default     = "us-east-1"
 }
 
+variable "aws_az" {
+  description = "AWS AZ to launch servers."
+  default     = "us-east-1f"
+}
+
 variable "public_key_path" {
   description = "Path to the authorized keys file"
   default = "C:/Users/asimon/.ssh/authorized_keys"
@@ -21,7 +26,7 @@ variable "instance_type" {
 variable "ami_id" {
   description = "The AMI ID for the EC2 instance."
   type        = string
-  default = "ami-4f39af58"
+  default = "ami-0424b6c6518fafbaf"
 }
 
 # CIDRs are stashed in SSM parameter store
