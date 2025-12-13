@@ -3,21 +3,6 @@ resource "local_file" "lambda_handler" {
   filename = "lambda_handler.py"
   content  = <<-EOT
 
-locals {
-  user_data_script = <<-EOT
-#!/bin/bash
-dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
-dnf install -y git libicu compat-openssl11
-useradd -m gh-runner
-sudo -u gh-runner bash -c 'cd /home/gh-runner && curl -o actions-runner-linux-x64.tar.gz -L "$(curl -s api.github.com | grep "browser_download_url" | grep "linux-x64" | cut -d "\"" -f 4)" && tar xzf actions-runner-linux-x64.tar.gz && rm actions-runner-linux-x64.tar.gz && ./config.sh --url https://github.com/AndrewSimon/tf-files --token AAGP7ZMRF4IOCJWWGOAQNETJHS3EA --unattended --replace --name $(hostname)-runner'
-
-dnf -y install busybox-static
-echo "Hello World! This is my spot instance." > index.html
-nohup busybox httpd -f -p 80 &
-nohup ./run.sh &
-
-  EOT
-}
 # This is a generated script by Terraform lambda_handler.tf
 
 import boto3
@@ -38,6 +23,18 @@ INSTANCE_TYPE = '${var.instance_type}'
 AVAILABILITY_ZONE = '${var.aws_az}'
 TAG_KEY = 'runner'
 TAG_VALUE = 'true' # or any value, e.g., 'active'
+
+USERDATA = """#!/bin/bash
+dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
+dnf install -y git libicu compat-openssl11
+useradd -m gh-runner
+sudo -u gh-runner bash -c 'cd /home/gh-runner && curl -o actions-runner-linux-x64.tar.gz -L "$(curl -s api.github.com | grep "browser_download_url" | grep "linux-x64" | cut -d "\"" -f 4)" && tar xzf actions-runner-linux-x64.tar.gz && rm actions-runner-linux-x64.tar.gz && ./config.sh --url https://github.com/AndrewSimon/tf-files --token AAGP7ZMRF4IOCJWWGOAQNETJHS3EA --unattended --replace --name $(hostname)-runner'
+
+dnf -y install busybox-static
+echo "Hello World! This is my spot instance." > index.html
+nohup busybox httpd -f -p 80 &
+nohup ./run.sh &
+"""
 
 def lambda_handler(event, context):
     """
@@ -75,8 +72,7 @@ def lambda_handler(event, context):
             Placement={
                 'AvailabilityZone': AVAILABILITY_ZONE
             },
-            UserData='string',
-            user_data = ${local.user_data_script}
+            UserData=USERDATA,
             TagSpecifications=[
                 {
                     'ResourceType': 'instance',
