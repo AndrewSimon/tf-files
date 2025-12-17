@@ -1,3 +1,35 @@
+# Public 1F from AZ us-east-1f has lower spot prices.
+data "aws_vpc" "main" {
+  tags = {
+    Name = var.vpc_name
+  }
+}
+#  If your region does not have an 'F' AZ, change tags to "Public 1A" or "Public 1D"
+data "aws_subnets" "public" {
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.main.id] 
+  }
+  tags = {
+    Name = "Public 1F"
+  }
+}
+
+data "aws_ssm_parameter" "gh_webhook_secret" {
+      name = "gh_webhook_secret"
+      with_decryption = true
+}
+
+locals {
+  # Convert the set of IDs to a list for easier indexing
+  public_subnet_ids_list = tolist(data.aws_subnets.public.ids)
+}
+
+output "spot_public_subnet_id" {
+  # Get the ID of the first subnet in the list
+  value = local.public_subnet_ids_list[0]
+}
+
 
 resource "local_file" "lambda_handler" {
   filename = "lambda_handler.py"
@@ -12,29 +44,18 @@ import logging
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-EC2_CLIENT = boto3.client('ec2', region_name='us-east-1')
-# AMI ID for the official Rocky Linux 9.x minimal image in us-east-1
-# This ID might need periodic updates. The owner is the official AWS Marketplace account (679593333241)
-# A known AMI ID for Rocky 9.5 (as of late 2024/early 2025) is ami-0aa1786a50c788578.
-# For robustness, consider dynamically fetching the latest AMI via SSM Parameter Store or describe_images filter
-# if the AMI ID in this code becomes outdated.
+EC2_CLIENT = boto3.client('ec2', region_name='${var.aws_region}')
+# Right now, this deploys to whatever your 'default' vpc is set to in your account, 
+# not the one tf-files just created.  We default to Az 'f' in hopes of lower spot costs. 
+#
+AVAILABILITY_ZONE = '${var.aws_az}'
 AMI_ID = '${var.ami_id}' # Technology Leadership LLC's OL96 AMI 
 INSTANCE_TYPE = '${var.instance_type}'
-AVAILABILITY_ZONE = '${var.aws_az}'
+SUBNET_ID = '${local.public_subnet_ids_list[0]}'
+KEY_NAME = '${var.key_name}'
 TAG_KEY = 'runner'
 TAG_VALUE = 'true' # or any value, e.g., 'active'
-
-USERDATA = """#!/bin/bash
-dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
-dnf install -y git libicu compat-openssl11
-useradd -m gh-runner
-sudo -u gh-runner bash -c 'cd /home/gh-runner && curl -o actions-runner-linux-x64.tar.gz -L "$(curl -s api.github.com | grep "browser_download_url" | grep "linux-x64" | cut -d "\"" -f 4)" && tar xzf actions-runner-linux-x64.tar.gz && rm actions-runner-linux-x64.tar.gz && ./config.sh --url https://github.com/AndrewSimon/tf-files --token AAGP7ZMRF4IOCJWWGOAQNETJHS3EA --unattended --replace --name $(hostname)-runner'
-
-dnf -y install busybox-static
-echo "Hello World! This is my spot instance." > index.html
-nohup busybox httpd -f -p 80 &
-nohup ./run.sh &
-"""
+WEBHOOK_SECRET = '${data.aws_ssm_parameter.gh_webhook_secret.value}'
 
 def lambda_handler(event, context):
     """
@@ -67,12 +88,13 @@ def lambda_handler(event, context):
         response = EC2_CLIENT.run_instances(
             ImageId=AMI_ID,
             InstanceType=INSTANCE_TYPE,
+            KeyName=KEY_NAME,
+            SubnetId=SUBNET_ID,
             MaxCount=1,
             MinCount=1,
             Placement={
                 'AvailabilityZone': AVAILABILITY_ZONE
             },
-            UserData=USERDATA,
             TagSpecifications=[
                 {
                     'ResourceType': 'instance',
@@ -124,6 +146,7 @@ data "archive_file" "lambda_zip" {
     local_file.lambda_handler
   ]
 }
+
 
 resource "aws_kms_key" "lambda_key" {
 #  key_id = data.aws_ssm_parameter.lambda_kms_key_id.value
@@ -244,6 +267,30 @@ resource "aws_iam_role_policy_attachment" "lambda_spot" {
   ]
 }
 
+# Grant permission for the public URL to invoke the Lambda
+#resource "aws_lambda_permission" "allow_public_invoke" {
+#  statement_id  = "AllowPublicInvoke"
+#  action        = "lambda:InvokeFunction"
+#  function_name = aws_lambda_function.spot_runner.function_name
+#  principal     = "*"
+  # SourceArn/SourceAccount constraints are not applicable for public function URLs
+#}
+
+# Register the webhook in GitHub
+resource "github_repository_webhook" "tf_webhook" {
+  repository = "tf-files"
+  configuration {
+    url          = aws_lambda_function_url.spot_lambda_url.function_url
+    content_type = "json"
+    insecure_ssl = false # Set to true if not using HTTPS (not recommended)
+    # The secret should be stored securely in a secret manager and passed here
+    secret       = data.aws_ssm_parameter.gh_webhook_secret.value
+  }
+  active = true
+  events = ["push"] # Choose the events you need
+}
+
+
 # AWS Lambda function resource
 resource "aws_lambda_function" "spot_runner" {
   function_name    = "SpotRunner"
@@ -259,6 +306,24 @@ resource "aws_lambda_function" "spot_runner" {
       GREETING = "Hello"
     }
   }
+}
+
+resource "aws_lambda_function_url" "spot_lambda_url" {
+  function_name      = aws_lambda_function.spot_runner.function_name
+  authorization_type = "NONE" # Restrict access with 'AWS_IAM'
+  cors {
+    # Origins that can access the function URL
+    allow_origins = ["https://api.github.com", "https://github.com"]
+    # HTTP methods that are allowed when calling the function URL
+    allow_methods = ["POST"]
+    # HTTP headers that origins can include in requests
+    #allow_headers = ["content-type", "authorization"]
+    allow_headers = []
+    # Whether to allow cookies or other credentials (optional, default is false)
+    allow_credentials = false
+    # Maximum amount of time, in seconds, that browsers can cache preflight results
+    max_age = 300
+    }
 }
 
 # Optional: Output the function name
