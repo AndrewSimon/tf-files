@@ -2,40 +2,48 @@
 ## The key word 'resource' creates resources if not already imported
 ## Trying to create a resource with an existing name fails
 ## Order is not important, but in this case:
-## 1) Create VPC and VPC components
+## 1) Create VPC and VPC components - comment out Public_F if your region does not have an 'f' AZ
 ## 2) Get the SSM parameter store value for undisclosed resource values
 ## 3) Create a Security Group
 ## 4) Create a key pair - commented as we'll use existing key
-## 5) Instantiate the server
+## 5) Instantiate one generic on-demand server (i.e. not the lambda created ephemeral spot runner)
 ## 6) As part of instantiation, assign the sg created earlier and add a public IP
 
-
-# Create a VPC to launch our instances into
+# Create a VPC to launch our instances into, must be hard-coded
+# Change "test2" to whatever you changed vpc_name to in varialbes.tf
 resource "aws_vpc" "test2" {
   cidr_block = "192.168.10.0/24"
   enable_dns_hostnames = "true"
   tags                    = {
-     "Name" = "test2" 
+     "Name" = var.vpc_name 
      }
+}
+
+# Get the name of the vpc we're using for later interpolation
+data "aws_vpc" "selected" {
+  tags = {
+    Name = var.vpc_name
+  }
 }
 
 # Create an internet gateway to give our subnet access to the outside world
 resource "aws_internet_gateway" "gw1" {
-   vpc_id = "${aws_vpc.test2.id}"
+   vpc_id = data.aws_vpc.selected.id
+   
    tags   = {
        "Name" = "gw1"
    }
 }
 
 resource "aws_route_table" "public_route_table" {
-  vpc_id = aws_vpc.test2.id
+  vpc_id = data.aws_vpc.selected.id
   # Grant the VPC internet access on its main route table
   route {
     cidr_block = "0.0.0.0/0"
     gateway_id = "${aws_internet_gateway.gw1.id}"
   }
   tags = {
-    Name = "rt-test2"
+    Name = "rt-${var.vpc_name}"
   }
 }
 
@@ -50,7 +58,7 @@ resource "aws_route_table" "public_route_table" {
 # Create 5 subnets to launch our instances into
 # The first two are private, the remaining three public
 resource "aws_subnet" "Private_1A" {
-  vpc_id = "${aws_vpc.test2.id}"
+  vpc_id = data.aws_vpc.selected.id
   cidr_block              = "192.168.10.192/27"
   map_public_ip_on_launch = false
   tags                    = {
@@ -58,7 +66,7 @@ resource "aws_subnet" "Private_1A" {
      }
 }
 resource "aws_subnet" "Private_1D" {
-  vpc_id = "${aws_vpc.test2.id}"
+  vpc_id = data.aws_vpc.selected.id
   cidr_block              = "192.168.10.224/27"
   map_public_ip_on_launch = false
   tags                    = {
@@ -66,7 +74,7 @@ resource "aws_subnet" "Private_1D" {
      }
 }
 resource "aws_subnet" "Public_1A" {
-  vpc_id = "${aws_vpc.test2.id}"
+  vpc_id = data.aws_vpc.selected.id
   cidr_block              = "192.168.10.64/27"
   map_public_ip_on_launch = true
   tags                    = {
@@ -74,7 +82,7 @@ resource "aws_subnet" "Public_1A" {
      }
 }
 resource "aws_subnet" "Public_1D" {
-  vpc_id = "${aws_vpc.test2.id}"
+  vpc_id = data.aws_vpc.selected.id
   cidr_block              = "192.168.10.128/27"
   map_public_ip_on_launch = true
   tags                    = {
@@ -82,8 +90,10 @@ resource "aws_subnet" "Public_1D" {
      }
 }
 
+## If your region does not have an 'F' AZ -  comment this out entirely 
+## and update lamdba_handler.tf to use 'Public A' or 'Public D' for AZ 
 resource "aws_subnet" "Public_1F" {
-  vpc_id = "${aws_vpc.test2.id}"
+  vpc_id = data.aws_vpc.selected.id
   cidr_block              = "192.168.11.128/27"
   map_public_ip_on_launch = true
   tags                    = {
@@ -99,9 +109,10 @@ data "aws_ssm_parameter" "vpc_test2_default_sg_cidrs" {
 resource "aws_security_group" "default" {
   name        = "default"
   description = "default VPC security group"
-  vpc_id      = "${aws_vpc.test2.id}"
+  vpc_id      = data.aws_vpc.selected.id
 
-  # Access from anywhere to port 23 and up
+  # Access from anywhere to port 23 and up - ssh blocked from everywhere by default
+  # Add another ingress block like this one, change to 'from_port = 0' and cidr_blocks = ["y.o.ur.ip/32"]
   ingress {
     description = "exclude ports under 23"
     from_port   = 23
@@ -127,6 +138,7 @@ resource "aws_security_group" "default" {
   }
 }
 
+# We instantiate 1 on-demand in AZ Public 1D.  Spot AZ is defined in variables.tf ('aws_az')
 resource "aws_instance" "tf-instance" {
   ami   = "${var.ami_id}"
   associate_public_ip_address = true
