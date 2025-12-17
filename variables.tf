@@ -3,8 +3,15 @@ variable "aws_region" {
   default     = "us-east-1"
 }
 
+variable "vpc_name" {
+  description = "AWS VPC Name"
+  default     = "test2"
+}
+
+# Use any 'f' AZ below, but if your region does not have an 'f' AZ
+# update main.tf and lambda.tf, accordingly
 variable "aws_az" {
-  description = "AWS AZ to launch servers."
+  description = "AWS Availability Zone"
   default     = "us-east-1f"
 }
 
@@ -24,13 +31,7 @@ variable "instance_type" {
 }
 
 variable "ami_id" {
-  description = "The AMI ID for the EC2 instance."
+  description = "Please subscribe to this TLC AMI ID for the EC2 instance before using."
   type        = string
   default = "ami-0424b6c6518fafbaf"
 }
-
-# CIDRs are stashed in SSM parameter store
-#variable "cidr_blocks" {
-# description = "List of CIDR blocks allowed for ingress rules."
-# type        = list(string)
-
