@@ -62,7 +62,7 @@ resource "aws_subnet" "Private_1A" {
   cidr_block              = "192.168.10.192/27"
   map_public_ip_on_launch = false
   tags                    = {
-     "Name" = "Private 1A" 
+     "Name" = "Private_1A" 
      }
 }
 resource "aws_subnet" "Private_1D" {
@@ -70,7 +70,7 @@ resource "aws_subnet" "Private_1D" {
   cidr_block              = "192.168.10.224/27"
   map_public_ip_on_launch = false
   tags                    = {
-     "Name" = "Private 1D" 
+     "Name" = "Private_1D" 
      }
 }
 resource "aws_subnet" "Public_1A" {
@@ -78,7 +78,7 @@ resource "aws_subnet" "Public_1A" {
   cidr_block              = "192.168.10.64/27"
   map_public_ip_on_launch = true
   tags                    = {
-     "Name" = "Public 1A" 
+     "Name" = "Public_1A" 
      }
 }
 resource "aws_subnet" "Public_1D" {
@@ -86,7 +86,7 @@ resource "aws_subnet" "Public_1D" {
   cidr_block              = "192.168.10.128/27"
   map_public_ip_on_launch = true
   tags                    = {
-     "Name" = "Public 1D" 
+     "Name" = "Public_1D" 
      }
 }
 
@@ -97,7 +97,7 @@ resource "aws_subnet" "Public_1F" {
   cidr_block              = "192.168.11.128/27"
   map_public_ip_on_launch = true
   tags                    = {
-     "Name" = "Public 1F" 
+     "Name" = "Public_1F" 
      }
 }
 

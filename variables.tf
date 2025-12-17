@@ -15,6 +15,12 @@ variable "aws_az" {
   default     = "us-east-1f"
 }
 
+variable "aws_subnet_tag" {
+  description = "AWS Availability Zone"
+  default     = "Public_1F"
+}
+
+
 variable "public_key_path" {
   description = "Path to the authorized keys file"
   default = "C:/Users/asimon/.ssh/authorized_keys"
