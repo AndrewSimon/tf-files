@@ -11,6 +11,10 @@ terraform {
       source  = "hashicorp/local"
       version = ">= 2.0.0"
     }
+    github = {
+      source  = "integrations/github"
+      version = "~> 6.0"
+    }
   }
   backend "s3" {
     bucket = "technology-leadership-terraform-state"
@@ -20,6 +24,16 @@ terraform {
 }
 
 provider "local" {}
+
+# Github Personal Access Token is an SSM parameter store secret (needed for the provider)
+data "aws_ssm_parameter" "gh_pat" {
+      name = "gh_pat"
+      with_decryption = true
+}
+
+provider "github" {
+  token        = "${data.aws_ssm_parameter.gh_pat.value}"
+}
 
 # Specify file path in variables.tf or replace var with pub key material here
 resource "aws_key_pair" "auth" {
