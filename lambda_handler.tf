@@ -11,7 +11,7 @@ data "aws_subnets" "public" {
     values = [data.aws_vpc.main.id] 
   }
   tags = {
-    Name = "Public 1F"
+    Name = var.aws_subnet_tag
   }
 }
 
