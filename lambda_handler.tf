@@ -290,7 +290,6 @@ resource "github_repository_webhook" "tf_webhook" {
   events = ["push"] # Choose the events you need
 }
 
-
 # AWS Lambda function resource
 resource "aws_lambda_function" "spot_runner" {
   function_name    = "SpotRunner"
@@ -299,6 +298,7 @@ resource "aws_lambda_function" "spot_runner" {
   handler          = "lambda_handler.lambda_handler" # Format: file_name.function_name
   runtime          = "python3.12"
   role             = aws_iam_role.lambda_execution_role.arn
+  timeout          = 3600
 
   # Optional: Define environment variables, memory size, etc.
   environment {
