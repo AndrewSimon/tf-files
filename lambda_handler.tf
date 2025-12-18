@@ -321,8 +321,8 @@ resource "aws_lambda_function_url" "spot_lambda_url" {
     allow_headers = []
     # Whether to allow cookies or other credentials (optional, default is false)
     allow_credentials = false
-    # Maximum amount of time, in seconds, that browsers can cache preflight results
-    max_age = 300
+    # Maximum amount of time - set this high to give time for your function to send a return coce
+    max_age = 3600
     }
 }
 
