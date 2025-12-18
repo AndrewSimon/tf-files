@@ -298,7 +298,7 @@ resource "aws_lambda_function" "spot_runner" {
   handler          = "lambda_handler.lambda_handler" # Format: file_name.function_name
   runtime          = "python3.12"
   role             = aws_iam_role.lambda_execution_role.arn
-  timeout          = 3600
+  timeout          = 900
 
   # Optional: Define environment variables, memory size, etc.
   environment {
