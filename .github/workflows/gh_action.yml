@@ -30,7 +30,9 @@ jobs:
                 pip install boto3 requests 
              else
                 echo "pip3 is already installed, continuing..."
+                pip install boto3 requests
              fi
+             
 
       - name: Run Python shell commands to check for S3 bucket via boto3
         shell: python
