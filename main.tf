@@ -161,3 +161,16 @@ resource "aws_instance" "tf-instance" {
     ]
   } 
 }
+
+data "github_actions_registration_token" "spot_runner" {
+  repository = "tf-files"
+}
+
+output "registration_token" {
+  value     = data.github_actions_registration_token.spot_runner.token
+  sensitive = true # Mark as sensitive to prevent logging the token
+}
+
+output "token_expiration" {
+  value = data.github_actions_registration_token.spot_runner.expires_at
+}
