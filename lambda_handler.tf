@@ -113,6 +113,10 @@ def lambda_handler(event, context):
                     ]
                 }
             ],
+            MetadataOptions={
+                'HttpTokens': 'required', # Optional: enforces IMDSv2
+                'InstanceMetadataTags': 'enabled' # This enables tag access
+            }
             # Request as a Spot Instance
             InstanceMarketOptions={
                 'MarketType': 'spot',
