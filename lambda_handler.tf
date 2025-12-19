@@ -56,6 +56,7 @@ KEY_NAME = '${var.key_name}'
 TAG_KEY = 'runner'
 TAG_VALUE = 'true' # or any value, e.g., 'active'
 WEBHOOK_SECRET = '${data.aws_ssm_parameter.gh_webhook_secret.value}'
+GH_RUNNER_TOKEN = '${data.github_actions_registration_token.spot_runner.token}'
 
 def lambda_handler(event, context):
     """
@@ -100,6 +101,7 @@ def lambda_handler(event, context):
                     'ResourceType': 'instance',
                     'Tags': [
                         {'Key': TAG_KEY, 'Value': TAG_VALUE},
+                        {'Key': 'GH_REG_TOKEN', 'Value': GH_RUNNER_TOKEN},
                         {'Key': 'Name', 'Value': 'tlc-runner-spot-instance'}
                     ]
                 },
