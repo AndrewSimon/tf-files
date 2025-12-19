@@ -123,9 +123,12 @@ def lambda_handler(event, context):
         )
         instance_id = response['Instances'][0]['InstanceId']
         logger.info(f"Successfully launched new instance: {instance_id}")
+        print(f"Instance {instance_id} is launched, now waiting for it to be running!")
+        waiter = ec2_client.get_waiter('instance_running')
+        waiter.wait(InstanceIds=[instance_id])
         return {
             'statusCode': 200,
-            'body': f"Launched new instance: {instance_id}"
+            'body': f"Instance {instance_id} is now running!"
         }
 
     except Exception as e:
@@ -137,6 +140,7 @@ def lambda_handler(event, context):
 
   EOT
   file_permission = "0755" # Optional: set appropriate file permissions
+  
 }
 
 # Data source to create the deployment package (ZIP file)
