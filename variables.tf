@@ -20,7 +20,6 @@ variable "aws_subnet_tag" {
   default     = "Public_1F"
 }
 
-
 variable "public_key_path" {
   description = "Path to the authorized keys file"
   default = "C:/Users/asimon/.ssh/authorized_keys"

@@ -55,7 +55,7 @@ SUBNET_ID = '${local.public_subnet_ids_list[0]}'
 KEY_NAME = '${var.key_name}'
 TAG_KEY = 'runner'
 TAG_VALUE = 'true' # or any value, e.g., 'active'
-WEBHOOK_SECRET = '${data.aws_ssm_parameter.gh_webhook_secret.value}'
+#WEBHOOK_SECRET = '${data.aws_ssm_parameter.gh_webhook_secret.value}'
 GH_RUNNER_TOKEN = '${data.github_actions_registration_token.spot_runner.token}'
 
 def lambda_handler(event, context):
@@ -333,8 +333,8 @@ resource "aws_lambda_function_url" "spot_lambda_url" {
     allow_headers = []
     # Whether to allow cookies or other credentials (optional, default is false)
     allow_credentials = false
-    # Maximum amount of time - set this high to give time for your function to send a return coce
-    max_age = 3600
+    # Maximum amount of time - set this to match webhook timeout
+    max_age = 10
     }
 }
 
