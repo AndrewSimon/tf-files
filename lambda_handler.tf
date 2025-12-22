@@ -127,12 +127,12 @@ def lambda_handler(event, context):
         )
         instance_id = response['Instances'][0]['InstanceId']
         logger.info(f"Successfully launched new instance: {instance_id}")
-        print(f"Instance {instance_id} is launched, now waiting for status check ok!")
-        waiter = EC2_CLIENT.get_waiter('instance_status_ok')
-        waiter.wait(InstanceIds=[instance_id])
+        print(f"Instance {instance_id} is launched, cannot for status check ok or gh will timeout!")
+        #waiter = EC2_CLIENT.get_waiter('instance_status_ok')
+        #waiter.wait(InstanceIds=[instance_id])
         return {
             'statusCode': 200,
-            'body': f"Instance {instance_id} is now running and check ok!"
+            'body': f"Instance {instance_id} is now launched!"
         }
 
     except Exception as e:
