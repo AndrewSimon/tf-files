@@ -58,6 +58,13 @@ TAG_VALUE = 'true' # or any value, e.g., 'active'
 #WEBHOOK_SECRET = '${data.aws_ssm_parameter.gh_webhook_secret.value}'
 GH_RUNNER_TOKEN = '${data.github_actions_registration_token.spot_runner.token}'
 
+USERDATA = """#!/bin/bash
+export TOKEN=$(curl -X PUT "169.254.169.254" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+export RUNNER_TOKEN=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" -v 169.254.169.254/latest/meta-data/tags/instance/GH_REG_TOKEN 2>/dev/null)
+sudo -u gh-runner bash -c "cd /home/gh-runner && ./config.sh --url https://github.com/AndrewSimon/tf-files --token $RUNNER_TOKEN --unattended --replace --name tlc-spot-runner"
+nohup sudo -u gh-runner bash -c 'cd /home/gh-runner && ./run.sh' &
+"""
+
 def lambda_handler(event, context):
     """
     Checks for a running spot instance with a specific tag and launches one if none exists.
@@ -96,6 +103,7 @@ def lambda_handler(event, context):
             Placement={
                 'AvailabilityZone': AVAILABILITY_ZONE
             },
+            UserData=USERDATA,
             TagSpecifications=[
                 {
                     'ResourceType': 'instance',
