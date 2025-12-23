@@ -119,9 +119,14 @@ data "aws_iam_role" "spot_instance_role" {
   name = "spot_instance_role"
 }
 
+# A data source to retrieve information about the AWS IAM policy for SSM full access
+#data "aws_iam_policy" "ssm_full_access" {
+#  arn = "arn:aws:iam::aws:policy/AmazonSSMFullAccess"
+#}
+
 resource "aws_iam_role_policy_attachment" "smm_policy_attachment" {
   role       = aws_iam_role.spot_instance_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMFullAccess"
 }
 
 # Define the ssm document that will install gh runner s/w and dependencies
