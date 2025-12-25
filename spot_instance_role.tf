@@ -30,6 +30,10 @@ data "aws_iam_policy_document" "gh_assume_role" {
 
 data "aws_caller_identity" "current" {}
 
+data "aws_iam_role" "sysadmin" {
+  name = "SysAdmin"
+}
+
 # IAM Role that the EC2 instance will assume
 resource "aws_iam_role" "spot_instance_role" {
   name = "spot_instance_role"
@@ -82,6 +86,12 @@ resource "aws_iam_policy" "spot_policy" {
         Resource = aws_iam_role.spot_instance_role.arn
       },
       {
+        Sid = "AllowPassSysAdminRolePolicy",
+        Effect = "Allow",
+        Action = "iam:PassRole",
+        Resource = data.aws_iam_role.sysadmin.arn
+      },
+      {
         Sid = "AllowPassingRoleToEC2",
         Effect = "Allow",
         Action = "iam:PassRole",
@@ -127,6 +137,11 @@ data "aws_iam_role" "spot_instance_role" {
 resource "aws_iam_role_policy_attachment" "smm_policy_attachment" {
   role       = aws_iam_role.spot_instance_role.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMFullAccess"
+}
+
+resource "aws_iam_instance_profile" "spot_profile" {
+  name = "spot_profile"
+  role = aws_iam_role.spot_instance_role.name
 }
 
 # Define the ssm document that will install gh runner s/w and dependencies

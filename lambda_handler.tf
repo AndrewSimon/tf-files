@@ -57,9 +57,9 @@ TAG_KEY = 'runner'
 TAG_VALUE = 'true' # or any value, e.g., 'active'
 #WEBHOOK_SECRET = '${data.aws_ssm_parameter.gh_webhook_secret.value}'
 GH_RUNNER_TOKEN = '${data.github_actions_registration_token.spot_runner.token}'
-ROLE_NAME = 'spot_instance_role'
+PROFILE_NAME = 'SysAdmin'
 USERDATA = """#!/bin/bash
-export TOKEN=$(curl -X PUT "169.254.169.254" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+export TOKEN=$(curl -X PUT "169.254.169.254" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600" http://169.254.169.254/latest/api/token)
 export RUNNER_TOKEN=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" -v 169.254.169.254/latest/meta-data/tags/instance/GH_REG_TOKEN 2>/dev/null)
 sudo -u gh-runner bash -c "cd /home/gh-runner && ./config.sh --url https://github.com/AndrewSimon/tf-files --token $RUNNER_TOKEN --unattended --replace --name tlc-spot-runner"
 nohup sudo -u gh-runner bash -c 'cd /home/gh-runner && ./run.sh' &
@@ -100,8 +100,9 @@ def lambda_handler(event, context):
             SubnetId=SUBNET_ID,
             MaxCount=1,
             MinCount=1,
+
             IamInstanceProfile={
-              'Name': ROLE_NAME # Specify the role name here
+              'Name': PROFILE_NAME # Specify the profile name here
             },
             Placement={
                 'AvailabilityZone': AVAILABILITY_ZONE
@@ -256,6 +257,8 @@ resource "aws_iam_policy" "ec2_run_policy" {
   })
 }
 
+
+
 # IAM role that the Lambda function will assume 
 resource "aws_iam_role" "lambda_execution_role" {
   name               = "lambda_execution_role"
@@ -288,15 +291,6 @@ resource "aws_iam_role_policy_attachment" "lambda_spot" {
     aws_iam_policy.spot_policy
   ]
 }
-
-# Grant permission for the public URL to invoke the Lambda
-#resource "aws_lambda_permission" "allow_public_invoke" {
-#  statement_id  = "AllowPublicInvoke"
-#  action        = "lambda:InvokeFunction"
-#  function_name = aws_lambda_function.spot_runner.function_name
-#  principal     = "*"
-  # SourceArn/SourceAccount constraints are not applicable for public function URLs
-#}
 
 # Register the webhook in GitHub
 resource "github_repository_webhook" "tf_webhook" {
