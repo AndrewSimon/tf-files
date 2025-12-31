@@ -5,3 +5,4 @@
 tlc.tfvars
 *.py
 *.zip
+*.yaml
