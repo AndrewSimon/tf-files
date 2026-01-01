@@ -100,7 +100,16 @@ def lambda_handler(event, context):
             SubnetId=SUBNET_ID,
             MaxCount=1,
             MinCount=1,
-
+            BlockDeviceMappings=[
+            {
+              'DeviceName': '/dev/sda1',
+              'Ebs': {
+                  'DeleteOnTermination': True, # Explicitly ensures the EBS volume is deleted
+                  'VolumeSize': 14, # Size in GiB
+                  'VolumeType': 'gp3',
+                  },
+                },
+            ],
             IamInstanceProfile={
               'Name': PROFILE_NAME # Specify the profile name here
             },
