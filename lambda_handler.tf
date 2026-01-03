@@ -56,11 +56,11 @@ KEY_NAME = '${var.key_name}'
 TAG_KEY = 'runner'
 TAG_VALUE = 'true' # or any value, e.g., 'active'
 #WEBHOOK_SECRET = '${data.aws_ssm_parameter.gh_webhook_secret.value}'
-GH_RUNNER_TOKEN = '${data.github_actions_registration_token.spot_runner.token}'
+#GH_RUNNER_TOKEN = '${data.github_actions_registration_token.spot_runner.token}'
+GH_PAT = '${data.aws_ssm_parameter.gh_pat.name}'
 PROFILE_NAME = 'SysAdmin'
 USERDATA = """#!/bin/bash
-export TOKEN=$(curl -X PUT "169.254.169.254" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600" http://169.254.169.254/latest/api/token)
-export RUNNER_TOKEN=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" -v 169.254.169.254/latest/meta-data/tags/instance/GH_REG_TOKEN 2>/dev/null)
+export RUNNER_TOKEN=$(curl -s -L -X POST -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_PAT" -H "X-GitHub-Api-Version: 2022-11-28" https://api.github.com/repos/AndrewSimon/tf-files/actions/runners/registration-token| grep token|awk -F\" '{print $4}')
 sudo -u gh-runner bash -c "cd /home/gh-runner && ./config.sh --url https://github.com/AndrewSimon/tf-files --token $RUNNER_TOKEN --unattended --replace --name tlc-spot-runner"
 nohup sudo -u gh-runner bash -c 'cd /home/gh-runner && ./run.sh' &
 """
@@ -122,7 +122,7 @@ def lambda_handler(event, context):
                     'ResourceType': 'instance',
                     'Tags': [
                         {'Key': TAG_KEY, 'Value': TAG_VALUE},
-                        {'Key': 'GH_REG_TOKEN', 'Value': GH_RUNNER_TOKEN},
+ #                      {'Key': 'GH_REG_TOKEN', 'Value': GH_RUNNER_TOKEN},
                         {'Key': 'Name', 'Value': 'tlc-runner-spot-instance'}
                     ]
                 },
@@ -180,7 +180,6 @@ data "archive_file" "lambda_zip" {
 
 
 resource "aws_kms_key" "lambda_key" {
-#  key_id = data.aws_ssm_parameter.lambda_kms_key_id.value
      policy = jsonencode({
        Version = "2012-10-17",
        Statement = [
