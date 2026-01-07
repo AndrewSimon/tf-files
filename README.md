@@ -78,7 +78,8 @@ main.tf: Nothing needs to change. Optionally, change 'test2' to another VPC name
 3. To test, run: terraform plan
 4. To execute with automatic 'yes', run: terraform apply -auto-approve
 5. To override AZ placement of runner to us-east-1a (for example), run: terraform apply -auto-approve -var="aws_az=us-east-1a" -var="aws_subnet_tag=Public_1A"
-6. To cleanup, run: terraform destroy
+6. If no capacity for spot and/or want on-demand, run: terraform apply -auto-approve -var="spot_market=false"
+7. To cleanup, run: terraform destroy
 
 ### Trouble-shooting
 Most early problems will involve AWS credentials.  Ensure your user account can create resources in the console.  The `aws s3 mb` command will work as long as it is a <i>unique</i> bucket name and your account has the create bucket access policy.  Confirm in the console you can create and read an existing s3 bucket, if you cannot do so command-line.  Do the same type of access check via Console for the SSM parameter store, VPC component, and EC2 instance creation, as well.  Adjust user account roles and policies, as needed.
