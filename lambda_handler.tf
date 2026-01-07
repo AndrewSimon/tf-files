@@ -93,13 +93,13 @@ def lambda_handler(event, context):
     logger.info(f"No existing instance found. Launching a new '{INSTANCE_TYPE}' spot instance in '{AVAILABILITY_ZONE}'...")
 
     params = {
-      ImageId=AMI_ID,
-      InstanceType=INSTANCE_TYPE,
-      KeyName=KEY_NAME,
-      SubnetId=SUBNET_ID,
-      MaxCount=1,
-      MinCount=1,
-      BlockDeviceMappings=[
+      'ImageId': AMI_ID,
+      'InstanceType': INSTANCE_TYPE,
+      'KeyName': KEY_NAME,
+      'SubnetId': SUBNET_ID,
+      'MaxCount': 1,
+      'MinCount': 1,
+      'BlockDeviceMappings: [
       {
         'DeviceName': '/dev/sda1',
         'Ebs': {
@@ -109,14 +109,14 @@ def lambda_handler(event, context):
           },
         },
       ],
-      IamInstanceProfile={
+      'IamInstanceProfile': {
         'Name': PROFILE_NAME # Specify the profile name here
       },
-      Placement={
+      'Placement': {
           'AvailabilityZone': AVAILABILITY_ZONE
       },
-      UserData=USERDATA,
-      TagSpecifications=[
+      'UserData': USERDATA,
+      'TagSpecifications' :[
           {
             'ResourceType': 'instance',
             'Tags': [
@@ -133,7 +133,7 @@ def lambda_handler(event, context):
               ]
           }
         ],
-        MetadataOptions={
+        'MetadataOptions': {
             'HttpTokens': 'required', # Optional: enforces IMDSv2
             'InstanceMetadataTags': 'enabled' # This enables tag access
         },   
