@@ -156,8 +156,12 @@ resource "aws_instance" "tf-instance" {
      }
   lifecycle {
     ignore_changes = [
-      ## configurable ami is not used for termination protected instances
-      ami
+      ## ignore for the on-demand instance, if already instantiated
+      ## these options are primarily for the spot instance gh runner(s)
+      ami,
+      instance_type,
+      key_name,
+      tags
     ]
   } 
 }

@@ -49,7 +49,7 @@ EC2_CLIENT = boto3.client('ec2', region_name='${var.aws_region}')
 # not the one tf-files just created.  We default to Az 'f' in hopes of lower spot costs. 
 #
 AVAILABILITY_ZONE = '${var.aws_az}'
-AMI_ID = '${var.ami_id}' # Technology Leadership LLC's OL96 AMI 
+AMI_ID = '${var.ami_id}' # Technology Leadership's GHR AMI 
 INSTANCE_TYPE = '${var.instance_type}'
 SUBNET_ID = '${local.public_subnet_ids_list[0]}'
 KEY_NAME = '${var.key_name}'
@@ -59,6 +59,7 @@ TAG_VALUE = 'true' # or any value, e.g., 'active'
 #GH_RUNNER_TOKEN = '${data.github_actions_registration_token.spot_runner.token}'
 GH_PAT = '${data.aws_ssm_parameter.gh_pat.name}'
 PROFILE_NAME = 'SysAdmin'
+SPOT_MARKET = '${var.spot_market}'
 USERDATA = """#!/bin/bash
 export RUNNER_TOKEN=$(curl -s -L -X POST -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_PAT" -H "X-GitHub-Api-Version: 2022-11-28" https://api.github.com/repos/AndrewSimon/tf-files/actions/runners/registration-token| grep token|awk -F\\" '{print $4}')
 sudo -u gh-runner bash -c "cd /home/gh-runner && ./config.sh --url https://github.com/AndrewSimon/tf-files --token $RUNNER_TOKEN --unattended --replace --name tlc-spot-runner"
@@ -91,64 +92,68 @@ def lambda_handler(event, context):
     # 2. If no matching instance is running, launch a new one-time spot instance
     logger.info(f"No existing instance found. Launching a new '{INSTANCE_TYPE}' spot instance in '{AVAILABILITY_ZONE}'...")
 
+    params = {
+      ImageId=AMI_ID,
+      InstanceType=INSTANCE_TYPE,
+      KeyName=KEY_NAME,
+      SubnetId=SUBNET_ID,
+      MaxCount=1,
+      MinCount=1,
+      BlockDeviceMappings=[
+      {
+        'DeviceName': '/dev/sda1',
+        'Ebs': {
+            'DeleteOnTermination': True, # Explicitly ensures the EBS volume is deleted
+            'VolumeSize': 14, # Size in GiB
+            'VolumeType': 'gp3',
+          },
+        },
+      ],
+      IamInstanceProfile={
+        'Name': PROFILE_NAME # Specify the profile name here
+      },
+      Placement={
+          'AvailabilityZone': AVAILABILITY_ZONE
+      },
+      UserData=USERDATA,
+      TagSpecifications=[
+          {
+            'ResourceType': 'instance',
+            'Tags': [
+                {'Key': TAG_KEY, 'Value': TAG_VALUE},
+ #                 {'Key': 'GH_REG_TOKEN', 'Value': GH_RUNNER_TOKEN},
+                  {'Key': 'Name', 'Value': 'tlc-runner-spot-instance'}
+              ]
+          },
+          {
+              'ResourceType': 'volume',
+              'Tags': [
+                  {'Key': TAG_KEY, 'Value': TAG_VALUE},
+                  {'Key': 'Name', 'Value': 'tlc-runner-spot-volume'}
+              ]
+          }
+        ],
+        MetadataOptions={
+            'HttpTokens': 'required', # Optional: enforces IMDSv2
+            'InstanceMetadataTags': 'enabled' # This enables tag access
+        },   
+    }
+    
+    if SPOT_MARKET:
+      params['InstanceMarketOptions'] = {
+          'MarketType': 'spot',
+          'SpotOptions': {
+              'SpotInstanceType': 'one-time',
+          }
+      }
+    else:
+      pass
+      
     try:
-        # Use RunInstances API with SpotOptions for modern spot requests. The legacy request_spot_instances is discouraged.
-        response = EC2_CLIENT.run_instances(
-            ImageId=AMI_ID,
-            InstanceType=INSTANCE_TYPE,
-            KeyName=KEY_NAME,
-            SubnetId=SUBNET_ID,
-            MaxCount=1,
-            MinCount=1,
-            BlockDeviceMappings=[
-            {
-              'DeviceName': '/dev/sda1',
-              'Ebs': {
-                  'DeleteOnTermination': True, # Explicitly ensures the EBS volume is deleted
-                  'VolumeSize': 14, # Size in GiB
-                  'VolumeType': 'gp3',
-                  },
-                },
-            ],
-            IamInstanceProfile={
-              'Name': PROFILE_NAME # Specify the profile name here
-            },
-            Placement={
-                'AvailabilityZone': AVAILABILITY_ZONE
-            },
-            UserData=USERDATA,
-            TagSpecifications=[
-                {
-                    'ResourceType': 'instance',
-                    'Tags': [
-                        {'Key': TAG_KEY, 'Value': TAG_VALUE},
- #                      {'Key': 'GH_REG_TOKEN', 'Value': GH_RUNNER_TOKEN},
-                        {'Key': 'Name', 'Value': 'tlc-runner-spot-instance'}
-                    ]
-                },
-                {
-                    'ResourceType': 'volume',
-                    'Tags': [
-                        {'Key': TAG_KEY, 'Value': TAG_VALUE},
-                        {'Key': 'Name', 'Value': 'tlc-runner-spot-volume'}
-                    ]
-                }
-            ],
-            MetadataOptions={
-                'HttpTokens': 'required', # Optional: enforces IMDSv2
-                'InstanceMetadataTags': 'enabled' # This enables tag access
-            },
-            # Request as a Spot Instance
-            InstanceMarketOptions={
-                'MarketType': 'spot',
-                'SpotOptions': {
-                    'SpotInstanceType': 'one-time',
-                }
-            }
-        )
+        response = EC2_CLIENT.run_instances(**params)
         instance_id = response['Instances'][0]['InstanceId']
         logger.info(f"Successfully launched new instance: {instance_id}")
-        print(f"Instance {instance_id} is launched, cannot for status check ok or gh will timeout!")
+        print(f"Instance {instance_id} is launched, cannot wait for status check ok or webhook will timeout!")
         #waiter = EC2_CLIENT.get_waiter('instance_status_ok')
         #waiter.wait(InstanceIds=[instance_id])
         return {
@@ -165,7 +170,6 @@ def lambda_handler(event, context):
 
   EOT
   file_permission = "0755" # Optional: set appropriate file permissions
-  
 }
 
 # Data source to create the deployment package (ZIP file)
