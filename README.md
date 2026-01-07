@@ -54,7 +54,7 @@ SSM parameter store can be used for sensitive data like <i>F/W (SG) IP allow ran
 
 ## tf-files Install Instructions
 1. Change directory to the location you want your terraform plan to be, usually your home directory
-2. Using the git command-line, clone and checkout the 'dev' branch, which is newest:
+2. Using the git command-line, clone and checkout the 'workflow' branch, which is newest:
 
 ```
 git clone -b workflow https://github.com/AndrewSimon/tf-files
