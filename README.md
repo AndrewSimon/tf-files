@@ -2,15 +2,21 @@
 
 This is a terraform plan that:
 
-1. Creates a new VPC
-2. In that VPC: Creates 5 subnets in two tiers (three public, two private) for high availability
-3. In that VPC: Creates an Internet Gateway
-4. In that VPC: Creates Routing table and route to igw
-5. Imports a key pair (just needs public key), uses an existing known working key pair
-6. Gets the SG CIDR blocks (list) from SSM
-7. Creates a Security Group
-8. Instantiate one server in one of the Public subnets
-9. As part of instantiation, assign the sg created earlier and adds a public IP
+1.  Creates a new VPC
+2.  In that VPC: Creates 5 subnets in two tiers (three public, two private) for high availability
+3.  In that VPC: Creates an Internet Gateway
+4.  In that VPC: Creates Routing table and route to igw
+5.  Imports a key pair (just needs public key), uses an existing known working key pair
+6.  Gets SG CIDR blocks (list), GH token and other secrets from SSM parameter store
+7.  Creates a Security Group
+8.  Instantiates one on-demand server in one of the Public subnets
+9.  As part of instantiation, assign the sg created earlier and adds a public IP
+10. Creates a github.com webhook for the tf-files with push trigger
+11. Creates an AWS lambda function and lambda url for the webhook to contact
+12. Lambda uses boto3 to instantiate a spot instance to create a github self-hosted runner
+13. Contains a github action to queue a job that runs when the runner is available
+14. The github action runs a simple aws api via boto3 to show the runner works
+15. Creates a lot of IAM policy documents and roles for steps 1-14 above to work
 
 ## Prerequisites
 The packages and setup required to be installed before starting are:
@@ -44,13 +50,14 @@ SSM parameter store can be used for sensitive data like <i>F/W (SG) IP allow ran
 3. Click Create Parameter
 4. Create a StringList type parameter with name used in your terraform
 5. Enter the CIDR list into values field, no spaces or quotes. E.g 123.123.123.123/32,224.242.224.0/24,10.0.0.0/16
+6. Repeat for other secrets, as needed
 
 ## tf-files Install Instructions
 1. Change directory to the location you want your terraform plan to be, usually your home directory
 2. Using the git command-line, clone and checkout the 'dev' branch, which is newest:
 
 ```
-git clone -b dev https://github.com/AndrewSimon/tf-files
+git clone -b workflow https://github.com/AndrewSimon/tf-files
 ```
 
 ### tf-files Configuration Instructions:
@@ -59,7 +66,7 @@ cd tf-files
 
 variables.tf:  
 1. Modify key_name to an SSH key pair name you already created in AWS and it's public key file path you saved locally
-2. Update the ami_id default value to an existing AMI in your region (the ami id defined in 2016 has since been deleted)
+2. Update the ami_id default value to an existing AMI in your account - uses a TLC AMI
 
 config.tf: Change the name of the bucket used for s3 backend and update your region, if not <b>us-east-1</b>.
 
@@ -70,7 +77,8 @@ main.tf: Nothing needs to change. Optionally, change 'test2' to another VPC name
 2. First time only, run: terraform init
 3. To test, run: terraform plan
 4. To execute with automatic 'yes', run: terraform apply -auto-approve
-5. To cleanup, run: terraform destroy
+5. To override AZ placement of runner to us-east-1a (for example), run: terraform apply -auto-approve -var="aws_az=us-east-1a" -var="aws_subnet_tag=Public_1A"
+6. To cleanup, run: terraform destroy
 
 ### Trouble-shooting
 Most early problems will involve AWS credentials.  Ensure your user account can create resources in the console.  The `aws s3 mb` command will work as long as it is a <i>unique</i> bucket name and your account has the create bucket access policy.  Confirm in the console you can create and read an existing s3 bucket, if you cannot do so command-line.  Do the same type of access check via Console for the SSM parameter store, VPC component, and EC2 instance creation, as well.  Adjust user account roles and policies, as needed.
