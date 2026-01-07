@@ -62,6 +62,7 @@ PROFILE_NAME = 'SysAdmin'
 SPOT_MARKET = '${var.spot_market}'
 USERDATA = """#!/bin/bash
 export RUNNER_TOKEN=$(curl -s -L -X POST -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_PAT" -H "X-GitHub-Api-Version: 2022-11-28" https://api.github.com/repos/AndrewSimon/tf-files/actions/runners/registration-token| grep token|awk -F\\" '{print $4}')
+sudo -u gh-runner bash -c "cd /home/gh-runner && ./config.sh remove
 sudo -u gh-runner bash -c "cd /home/gh-runner && ./config.sh --url https://github.com/AndrewSimon/tf-files --token $RUNNER_TOKEN --unattended --replace --name tlc-spot-runner"
 nohup sudo -u gh-runner bash -c 'cd /home/gh-runner && ./run.sh' &
 """
