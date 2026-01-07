@@ -99,7 +99,7 @@ def lambda_handler(event, context):
       'SubnetId': SUBNET_ID,
       'MaxCount': 1,
       'MinCount': 1,
-      'BlockDeviceMappings: [
+      'BlockDeviceMappings': [
       {
         'DeviceName': '/dev/sda1',
         'Ebs': {
