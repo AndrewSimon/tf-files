@@ -43,7 +43,7 @@ variable "ami_id" {
 }
 
 variable "spot_market" {
-  description = "If no spot capacity in any AZ and still need a runner, set bool to false."
-  type        = bool
-  default     = true
+  description = "Python boolean must be uppercase first letter. Thus, it is a string in terraform.  If no spot capacity in any AZ and still need a runner, set var to False."
+  type        = string
+  default     = "True"
 }
