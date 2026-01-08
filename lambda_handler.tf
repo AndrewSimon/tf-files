@@ -91,7 +91,7 @@ def lambda_handler(event, context):
         logger.info(f"Found {instance_count} existing {MKT_OPT} instance(s) with tag '{TAG_KEY}'. No new instance launched.")
         return {
             'statusCode': 200,
-            'body': f"Instance already running. Count: {instance_count}"
+            'body': f"A {MKT_OPT} instance already running. Count: {instance_count}"
         }
 
     # 2. If no matching instance is running, launch a new one-time spot instance
@@ -127,14 +127,14 @@ def lambda_handler(event, context):
             'Tags': [
                 {'Key': TAG_KEY, 'Value': TAG_VALUE},
  #                 {'Key': 'GH_REG_TOKEN', 'Value': GH_RUNNER_TOKEN},
-                  {'Key': 'Name', 'Value': 'tlc-runner-{MKT_OPT}-instance'}
+                  {'Key': 'Name', 'Value': 'tlc-runner-' + MKT_OPT + '-instance'}
               ]
           },
           {
               'ResourceType': 'volume',
               'Tags': [
                   {'Key': TAG_KEY, 'Value': TAG_VALUE},
-                  {'Key': 'Name', 'Value': 'tlc-runner-{MKT_OPT}-volume'}
+                  {'Key': 'Name', 'Value': 'tlc-runner-' + MKT_OPT + '-instance'}
               ]
           }
         ],
@@ -157,13 +157,13 @@ def lambda_handler(event, context):
     try:
         response = EC2_CLIENT.run_instances(**params)
         instance_id = response['Instances'][0]['InstanceId']
-        logger.info(f"Successfully launched new instance: {instance_id}")
+        logger.info(f"Successfully launched new {MKT_OPT} instance: {instance_id}")
         print(f"Instance {instance_id} is launched, cannot wait for status check ok or webhook will timeout!")
         #waiter = EC2_CLIENT.get_waiter('instance_status_ok')
         #waiter.wait(InstanceIds=[instance_id])
         return {
             'statusCode': 200,
-            'body': f"Instance {instance_id} is now launched!"
+            'body': f"{MKT_OPT} instance {instance_id} is now launched!"
         }
 
     except Exception as e:
