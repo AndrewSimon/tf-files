@@ -60,16 +60,19 @@ TAG_VALUE = 'true' # or any value, e.g., 'active'
 GH_PAT = '${data.aws_ssm_parameter.gh_pat.value}'
 PROFILE_NAME = 'SysAdmin'
 SPOT_MARKET = ${var.spot_market}
+
+MKT_OPT = "spot" if SPOT_MARKET else "on-demand"
+
 USERDATA = f"""#!/bin/bash
 export RUNNER_TOKEN=$(curl -s -L -X POST -H "Accept: application/vnd.github+json" -H "Authorization: Bearer {GH_PAT}" -H "X-GitHub-Api-Version: 2022-11-28" https://api.github.com/repos/AndrewSimon/tf-files/actions/runners/registration-token| grep token|awk -F\\" '{{print $4}}')
 sudo -u gh-runner bash -c "cd /home/gh-runner && ./config.sh remove --token $RUNNER_TOKEN"
-sudo -u gh-runner bash -c "cd /home/gh-runner && ./config.sh --url https://github.com/AndrewSimon/tf-files --token $RUNNER_TOKEN --unattended --replace --name tlc-spot-runner"
+sudo -u gh-runner bash -c "cd /home/gh-runner && ./config.sh --url https://github.com/AndrewSimon/tf-files --token $RUNNER_TOKEN --unattended --replace --name tlc-{MKT_OPT}-runner"
 nohup sudo -u gh-runner bash -c 'cd /home/gh-runner && ./run.sh' &
 """
 
 def lambda_handler(event, context):
     """
-    Checks for a running spot instance with a specific tag and launches one if none exists.
+    Checks for a running spot or on-demand instance with a specific tag and launches one if none exists.
     """
     
     # 1. Check for existing running instances with the tag 'runner'
@@ -77,21 +80,22 @@ def lambda_handler(event, context):
         Filters=[
             {'Name': 'tag:' + TAG_KEY, 'Values': [TAG_VALUE]},
             {'Name': 'instance-state-name', 'Values': ['pending', 'running']},
-            {'Name': 'instance-lifecycle', 'Values': ['spot']}
+#            Prevent a 2nd runner whether it is spot or on-demand
+#            {'Name': 'instance-lifecycle', 'Values': ['spot']}
         ]
     )
 
     instance_count = sum(len(res['Instances']) for res in existing_instances['Reservations'])
 
     if instance_count > 0:
-        logger.info(f"Found {instance_count} existing spot instance(s) with tag '{TAG_KEY}'. No new instance launched.")
+        logger.info(f"Found {instance_count} existing {MKT_OPT} instance(s) with tag '{TAG_KEY}'. No new instance launched.")
         return {
             'statusCode': 200,
             'body': f"Instance already running. Count: {instance_count}"
         }
 
     # 2. If no matching instance is running, launch a new one-time spot instance
-    logger.info(f"No existing instance found. Launching a new '{INSTANCE_TYPE}' spot instance in '{AVAILABILITY_ZONE}'...")
+    logger.info(f"No existing instance found. Launching a new '{INSTANCE_TYPE}' '{MKT_OPT}' instance in '{AVAILABILITY_ZONE}'...")
 
     params = {
       'ImageId': AMI_ID,
@@ -123,14 +127,14 @@ def lambda_handler(event, context):
             'Tags': [
                 {'Key': TAG_KEY, 'Value': TAG_VALUE},
  #                 {'Key': 'GH_REG_TOKEN', 'Value': GH_RUNNER_TOKEN},
-                  {'Key': 'Name', 'Value': 'tlc-runner-spot-instance'}
+                  {'Key': 'Name', 'Value': 'tlc-runner-{MKT_OPT}-instance'}
               ]
           },
           {
               'ResourceType': 'volume',
               'Tags': [
                   {'Key': TAG_KEY, 'Value': TAG_VALUE},
-                  {'Key': 'Name', 'Value': 'tlc-runner-spot-volume'}
+                  {'Key': 'Name', 'Value': 'tlc-runner-{MKT_OPT}-volume'}
               ]
           }
         ],
