@@ -78,7 +78,7 @@ main.tf: Nothing needs to change. Optionally, change 'test2' to another VPC name
 3. To test, run: terraform plan
 4. To execute with automatic 'yes', run: terraform apply -auto-approve
 5. To override AZ placement of runner to us-east-1a (for example), run: terraform apply -auto-approve -var="aws_az=us-east-1a" -var="aws_subnet_tag=Public_1A"
-6. If no capacity for spot and/or want on-demand, run: terraform apply -auto-approve -var="spot_market=false"
+6. If no capacity for spot and/or want on-demand, run: terraform apply -auto-approve -var="spot_market=False"
 7. To cleanup, run: terraform destroy
 
 ### Trouble-shooting
