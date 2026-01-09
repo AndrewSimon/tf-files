@@ -39,11 +39,11 @@ variable "instance_type" {
 variable "ami_id" {
   description = "Please subscribe to this TLC AMI ID for the spot instance before using tf."
   type        = string
-  default = "ami-08be2cbad91e62dc5"
+  default = "ami-0f12e4302d2ae8b8f"
 }
 
 variable "spot_market" {
-  description = "Python boolean must be uppercase first letter. Thus, it is a string in terraform.  If no spot capacity in any AZ and still need a runner, set var to False."
+  description = "Python boolean must be uppercase first letter. Thus, a string in terraform. Set to False to request an on-demand instance."
   type        = string
   default     = "True"
 }
