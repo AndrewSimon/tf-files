@@ -195,22 +195,22 @@ data "archive_file" "lambda_zip" {
 }
 
 
-resource "aws_kms_key" "lambda_key" {
-     policy = jsonencode({
-       Version = "2012-10-17",
-       Statement = [
-         {
-           Sid    = "Enable IAM policies",
-           Effect = "Allow",
-           Principal = {
-             AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
-          },
-           Action   = "kms:*",
-           Resource = "*"
-         },
-       ]
-     })
-}
+#resource "aws_kms_key" "lambda_key" {
+#     policy = jsonencode({
+#       Version = "2012-10-17",
+#       Statement = [
+#         {
+#           Sid    = "Enable IAM policies",
+#           Effect = "Allow",
+#           Principal = {
+#             AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
+#          },
+#           Action   = "kms:*",
+#           Resource = "*"
+#         },
+#       ]
+#     })
+#}
 
 # For access to Lambda
 data "aws_iam_policy_document" "AWSLambdaTrustPolicy" {
