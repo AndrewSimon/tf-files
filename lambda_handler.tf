@@ -134,14 +134,14 @@ def lambda_handler(event, context):
             'Tags': [
                 {'Key': TAG_KEY, 'Value': TAG_VALUE},
  #                 {'Key': 'GH_REG_TOKEN', 'Value': GH_RUNNER_TOKEN},
-                  {'Key': 'Name', 'Value': 'tlc-runner-' + MKT_OPT + '-instance-' + instance_count}
+                  {'Key': 'Name', 'Value': 'tlc-runner-' + MKT_OPT + '-instance-' + str(instance_count)}
               ]
           },
           {
               'ResourceType': 'volume',
               'Tags': [
                   {'Key': TAG_KEY, 'Value': TAG_VALUE},
-                  {'Key': 'Name', 'Value': 'tlc-runner-' + MKT_OPT + '-instance-' + instance_count}
+                  {'Key': 'Name', 'Value': 'tlc-runner-' + MKT_OPT + '-instance-' + str(instance_count)}
               ]
           }
         ],
