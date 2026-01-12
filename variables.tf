@@ -31,6 +31,7 @@ variable "aws_subnet_tag" {
   description = "AWS Availability Zone"
   default     = "Public_1F"
 }
+
 variable "instance_type" {
   description = "Instance Type"
   default = "t3a.micro"
@@ -46,4 +47,22 @@ variable "spot_market" {
   description = "Python boolean must be uppercase first letter. Thus, a string in terraform. Set to False to request an on-demand instance."
   type        = string
   default     = "True"
+}
+
+variable "volume_size" {
+  description = "Size in GB. The TLC AMI is only 14, increase as needed"
+  type        = string
+  default     = "14"
+}
+
+variable "instance_role" {
+  description = "Any built-in role in your account with appropriate permissions to attach to spot_instance_profile"
+  type        = string
+  default     = "AWSServiceRoleForSupport"
+}
+
+variable "max_instances" {
+description = "Maximum number of running instances allowed by SpotRunner lambda_handler"
+  type        = string
+  default     = "1"
 }

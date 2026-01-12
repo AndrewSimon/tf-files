@@ -30,8 +30,8 @@ data "aws_iam_policy_document" "gh_assume_role" {
 
 data "aws_caller_identity" "current" {}
 
-data "aws_iam_role" "sysadmin" {
-  name = "SysAdmin"
+data "aws_iam_role" "irole" {
+  name = "${var.instance_role}"
 }
 
 # IAM Role that the EC2 instance will assume
@@ -86,10 +86,10 @@ resource "aws_iam_policy" "spot_policy" {
         Resource = aws_iam_role.spot_instance_role.arn
       },
       {
-        Sid = "AllowPassSysAdminRolePolicy",
+        Sid = "AllowPassRolePolicy",
         Effect = "Allow",
         Action = "iam:PassRole",
-        Resource = data.aws_iam_role.sysadmin.arn
+        Resource = data.aws_iam_role.irole.arn
       },
       {
         Sid = "AllowPassingRoleToEC2",
@@ -143,43 +143,3 @@ resource "aws_iam_instance_profile" "spot_profile" {
   name = "spot_profile"
   role = aws_iam_role.spot_instance_role.name
 }
-
-# Define the ssm document that will install gh runner s/w and dependencies
-#resource "aws_ssm_document" "install_runner" {
-#  name            = "InstallRunner"
-#  document_format = "JSON"
-#  document_type   = "Command"
-#  content = jsonencode({
-#    schemaVersion = "2.2"
-#    description   = "Install Github Runner"
-#    mainSteps = [{
-#      action = "aws:runShellScript"
-#      name   = "installRunner"
-#      inputs = {
-#        runCommand = <<-EOF
-#          sudo dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
-#          sudo dnf install -y git libicu compat-openssl11
-#          sudo useradd -m gh-runner
-#          sudo -u gh-runner bash -c 'cd /home/gh-runner && curl -o actions-runner-linux-x64.tar.gz -L "$(curl -s api.github.com | grep "browser_download_url" | grep "linux-x64" | cut -d "\"" -f 4)" && tar xzf actions-runner-linux-x64.tar.gz && rm actions-runner-linux-x64.tar.gz && ./config.sh --url https://github.com/AndrewSimon/tf-files --token AAGP7ZMRF4IOCJWWGOAQNETJHS3EA --unattended --replace --name $(hostname)-runner'
-
-#          sudo dnf -y install busybox-static
-#          echo "Hello World! This is my spot instance." > index.html
-#          nohup busybox httpd -f -p 80 &
-#          nohup sudo -u gh-runner bash -c './run.sh' &
-#        EOF
-#      }
- #   }]
- # })
-#}
-
-# Associate the install script with 'runner' tagged instances
-#resource "aws_ssm_association" "install_association" {
-#  name             = aws_ssm_document.install_runner.name
-#  targets {
-#    key    = "tag:runner"
-#    values = ["true"]
-#  }
-#}
-#output "assume_role_policy_document" {
-#  value = data.aws_iam_role.spot_instance_role.assume_role_policy
-#}

@@ -54,19 +54,22 @@ INSTANCE_TYPE = '${var.instance_type}'
 SUBNET_ID = '${local.public_subnet_ids_list[0]}'
 KEY_NAME = '${var.key_name}'
 TAG_KEY = 'runner'
-TAG_VALUE = 'true' # or any value, e.g., 'active'
+TAG_VALUE = 'true' # or any value, e.g., 'active' as we check for key
 #WEBHOOK_SECRET = '${data.aws_ssm_parameter.gh_webhook_secret.value}'
 #GH_RUNNER_TOKEN = '${data.github_actions_registration_token.spot_runner.token}'
 GH_PAT = '${data.aws_ssm_parameter.gh_pat.value}'
-PROFILE_NAME = 'SysAdmin'
-SPOT_MARKET = ${var.spot_market}
+PROFILE_NAME = 'spot_instance_profile'
+VOL_SIZE = ${var.volume_size} #Integer
+SPOT_MARKET = ${var.spot_market} #Boolean
+MAX = ${var.max_instances} #Integer
 
 MKT_OPT = "spot" if SPOT_MARKET else "on-demand"
 
 USERDATA = f"""#!/bin/bash
+export DEFAULT_MAX=1
 export RUNNER_TOKEN=$(curl -s -L -X POST -H "Accept: application/vnd.github+json" -H "Authorization: Bearer {GH_PAT}" -H "X-GitHub-Api-Version: 2022-11-28" https://api.github.com/repos/AndrewSimon/tf-files/actions/runners/registration-token| grep token|awk -F\\" '{{print $4}}')
 sudo -u gh-runner bash -c "cd /home/gh-runner && ./config.sh remove --token $RUNNER_TOKEN"
-sudo -u gh-runner bash -c "cd /home/gh-runner && ./config.sh --url https://github.com/AndrewSimon/tf-files --token $RUNNER_TOKEN --unattended --replace --name tlc-{MKT_OPT}-runner"
+sudo -u gh-runner bash -c "cd /home/gh-runner && ./config.sh --url https://github.com/AndrewSimon/tf-files --token $RUNNER_TOKEN --unattended --replace --name tlc-{MKT_OPT}-runner-$DEFAULT_MAX"
 nohup sudo -u gh-runner bash -c 'cd /home/gh-runner && ./run.sh' &
 """
 
@@ -86,8 +89,10 @@ def lambda_handler(event, context):
     )
 
     instance_count = sum(len(res['Instances']) for res in existing_instances['Reservations'])
+    
+    USERDATA = USERDATA.replace("$DEFAULT_MAX", str(instance_count))
 
-    if instance_count > 0:
+    if instance_count > MAX:
         logger.info(f"Found {instance_count} existing {MKT_OPT} instance(s) with tag '{TAG_KEY}'. No new instance launched.")
         return {
             'statusCode': 200,
@@ -109,7 +114,7 @@ def lambda_handler(event, context):
         'DeviceName': '/dev/sda1',
         'Ebs': {
             'DeleteOnTermination': True, # Explicitly ensures the EBS volume is deleted
-            'VolumeSize': 14, # Size in GiB
+            'VolumeSize': VOL_SIZE, # Size in GiB
             'VolumeType': 'gp3',
           },
         },
@@ -127,14 +132,14 @@ def lambda_handler(event, context):
             'Tags': [
                 {'Key': TAG_KEY, 'Value': TAG_VALUE},
  #                 {'Key': 'GH_REG_TOKEN', 'Value': GH_RUNNER_TOKEN},
-                  {'Key': 'Name', 'Value': 'tlc-runner-' + MKT_OPT + '-instance'}
+                  {'Key': 'Name', 'Value': 'tlc-runner-' + MKT_OPT + '-instance-' + instance_count}
               ]
           },
           {
               'ResourceType': 'volume',
               'Tags': [
                   {'Key': TAG_KEY, 'Value': TAG_VALUE},
-                  {'Key': 'Name', 'Value': 'tlc-runner-' + MKT_OPT + '-instance'}
+                  {'Key': 'Name', 'Value': 'tlc-runner-' + MKT_OPT + '-instance-' + instance_count}
               ]
           }
         ],
