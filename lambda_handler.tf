@@ -77,8 +77,10 @@ def lambda_handler(event, context):
     """
     Checks for a running spot or on-demand instance with a specific tag and launches one if none exists.
     """
+    # Declare USERDATA global so we can reassign it's value within this function
+    global USERDATA
     
-    # 1. Check for existing running instances with the tag 'runner'
+    # Check for existing running instances with the tag 'runner'
     existing_instances = EC2_CLIENT.describe_instances(
         Filters=[
             {'Name': 'tag:' + TAG_KEY, 'Values': [TAG_VALUE]},
@@ -99,7 +101,7 @@ def lambda_handler(event, context):
             'body': f"A {MKT_OPT} instance already running. Count: {instance_count}"
         }
 
-    # 2. If no matching instance is running, launch a new one-time spot instance
+    # If no matching instance is running, launch a new one-time spot instance
     logger.info(f"No existing instance found. Launching a new '{INSTANCE_TYPE}' '{MKT_OPT}' instance in '{AVAILABILITY_ZONE}'...")
 
     params = {
