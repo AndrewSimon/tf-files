@@ -91,16 +91,16 @@ def lambda_handler(event, context):
     )
 
     instance_count = sum(len(res['Instances']) for res in existing_instances['Reservations'])
-    
-    USERDATA = USERDATA.replace("$DEFAULT_MAX", str(instance_count))
 
-    if instance_count > MAX:
+    if instance_count >= MAX:
         logger.info(f"Found {instance_count} existing instance(s) with tag '{TAG_KEY}'. No new instance launched.")
         return {
             'statusCode': 200,
             'body': f"Found {instance_count} instances running while {MAX} allowed, no new instances launched."
         }
 
+    # Update USERDATA tags with marketplace option, max count and current existing count
+    USERDATA = USERDATA.replace("$DEFAULT_MAX", str(instance_count))
     # If no matching instance is running, launch a new one-time spot instance
     logger.info(f"{instance_count} instances found. Launching a new '{INSTANCE_TYPE}' '{MKT_OPT}' instance in '{AVAILABILITY_ZONE}'...")
 
