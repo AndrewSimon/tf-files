@@ -80,18 +80,28 @@ def lambda_handler(event, context):
     # Declare USERDATA global so we can reassign it's value within this function
     global USERDATA
     
-    # Check for existing running instances with the tag 'runner'
+    # Check for tag key 'runner' separately as missing tag keys report an
+    # empty set, creating a false positive when used together with other filters
     existing_instances = EC2_CLIENT.describe_instances(
         Filters=[
             {'Name': 'tag:' + TAG_KEY, 'Values': [TAG_VALUE]},
-            {'Name': 'instance-state-name', 'Values': ['pending', 'running']},
-#            Prevent a 2nd runner whether it is spot or on-demand
-#            {'Name': 'instance-lifecycle', 'Values': ['spot']}
         ]
     )
-
     instance_count = sum(len(res['Instances']) for res in existing_instances['Reservations'])
 
+    # If we find any instances with tag key 'runner' we safely reassign count value based on state
+    if instance_count > 0:
+        logger.info(f"Found {instance_count} instance(s) with tag '{TAG_KEY}', checking instance state...")
+        existing_instances = EC2_CLIENT.describe_instances(
+          Filters=[
+              {'Name': 'tag:' + TAG_KEY, 'Values': [TAG_VALUE]},
+              {'Name': 'instance-state-name', 'Values': ['pending', 'running']},
+#              Uncomment to check ONLY for spot instances - results in unlimited on-demand
+#              {'Name': 'instance-lifecycle', 'Values': ['spot']} # specify on-demand for unlimited spot
+          ]
+        )
+    instance_count = sum(len(res['Instances']) for res in existing_instances['Reservations'])
+       
     if instance_count >= MAX:
         logger.info(f"Found {instance_count} existing instance(s) with tag '{TAG_KEY}'. No new instance launched.")
         return {
