@@ -40,7 +40,7 @@ variable "instance_type" {
 variable "ami_id" {
   description = "Please subscribe to this TLC AMI ID for the spot instance before using tf."
   type        = string
-  default = "ami-0f12e4302d2ae8b8f"
+  default = "ami-01f02fed0e9e9e947"
 }
 
 variable "spot_market" {
@@ -55,10 +55,10 @@ variable "volume_size" {
   default     = "14"
 }
 
-variable "instance_role" {
-  description = "Any built-in role in your account with appropriate permissions to attach to spot_instance_profile"
+variable "instance_profile" {
+  description = "Use the ssm_prodile we built in ssm.tf or override with your own"
   type        = string
-  default     = "AWSServiceRoleForSupport"
+  default     = "SSMInstanceProfile"
 }
 
 variable "max_instances" {
