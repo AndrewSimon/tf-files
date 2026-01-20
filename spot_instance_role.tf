@@ -30,10 +30,6 @@ data "aws_iam_policy_document" "gh_assume_role" {
 
 data "aws_caller_identity" "current" {}
 
-data "aws_iam_role" "irole" {
-  name = "${var.instance_role}"
-}
-
 # IAM Role that the EC2 instance will assume
 resource "aws_iam_role" "spot_instance_role" {
   name = "spot_instance_role"
@@ -84,12 +80,6 @@ resource "aws_iam_policy" "spot_policy" {
         Effect = "Allow",
         Action = "iam:PassRole",
         Resource = aws_iam_role.spot_instance_role.arn
-      },
-      {
-        Sid = "AllowPassRolePolicy",
-        Effect = "Allow",
-        Action = "iam:PassRole",
-        Resource = data.aws_iam_role.irole.arn
       },
       {
         Sid = "AllowPassingRoleToEC2",
