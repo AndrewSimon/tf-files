@@ -3,16 +3,21 @@
 ## 2) Creates an ec2 policy lambda uses (in addition to other policies)
 ## 3) Attaches th e policies to spot instance - this may be updated
 
-data "aws_iam_policy_document" "gh_assume_role" {
+data "aws_iam_policy_document" "gh_ssm_assume_role" {
   statement {
     effect = "Allow"
+    
+    principals {
+      type    = "Service"
+      identifiers = ["ec2.amazonaws.com","ssm.amazonaws.com"]
+      }
 
     principals {
       type        = "Federated"
       identifiers = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:oidc-provider/token.actions.githubusercontent.com"]
     }
 
-    actions = ["sts:AssumeRoleWithWebIdentity"]
+    actions = ["sts:AssumeRoleWithWebIdentity","sts:AssumeRole"]
 
     condition {
       test     = "StringEquals"
@@ -25,7 +30,7 @@ data "aws_iam_policy_document" "gh_assume_role" {
       variable = "token.actions.githubusercontent.com:sub"
       values   = ["repo:AndrewSimon/tf-files:*"]
     }
-  }
+  } 
 }
 
 data "aws_caller_identity" "current" {}
@@ -33,7 +38,7 @@ data "aws_caller_identity" "current" {}
 # IAM Role that the EC2 instance will assume
 resource "aws_iam_role" "spot_instance_role" {
   name = "spot_instance_role"
-  assume_role_policy = data.aws_iam_policy_document.gh_assume_role.json
+  assume_role_policy = data.aws_iam_policy_document.gh_ssm_assume_role.json
 }
 
 # IAM policy for the spot instance requests with specific conditions
@@ -51,16 +56,7 @@ resource "aws_iam_policy" "spot_policy" {
           "ec2:RequestSpotInstances",
           "ec2:RunInstances" # RequestSpotInstances might use RunInstances internally
         ],
-        Resource = "arn:aws:ec2:*:*:instance/*", # Resource-level permissions might not be supported for RequestSpotInstances condition keys
-        Condition = {
-          "StringEquals" = {
-            "ec2:InstanceType"        = "t3a.micro",
-            "ec2:PlacementAvailabilityZone" = "us-east-1f"
-          },
-          "NumericLessThanEquals" = {
-            "ec2:TotalSpotInstanceCount" = 1
-          }
-        }
+        Resource = "arn:aws:ec2:*:*:instance/*", 
       },
       {
         Sid    = "AllowRequiredDescribeActions",
@@ -123,11 +119,6 @@ data "aws_iam_role" "spot_instance_role" {
 #data "aws_iam_policy" "ssm_full_access" {
 #  arn = "arn:aws:iam::aws:policy/AmazonSSMFullAccess"
 #}
-
-resource "aws_iam_role_policy_attachment" "smm_policy_attachment" {
-  role       = aws_iam_role.spot_instance_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMFullAccess"
-}
 
 resource "aws_iam_instance_profile" "spot_profile" {
   name = "spot_profile"

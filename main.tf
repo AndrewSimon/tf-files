@@ -171,11 +171,6 @@ resource "aws_cloudwatch_event_bus" "custom_bus" {
   name = "custom-event-bus" # Required: The name of your custom event bus
 }
 
-resource "aws_ssm_service_setting" "default_host_management" {
-  setting_id    = "/ssm/managed-instance/default-ec2-instance-management-role"
-  setting_value = "service-role/AWSSystemsManagerDefaultEC2InstanceManagementRole"
-}
-
 data "github_actions_registration_token" "spot_runner" {
   repository = "tf-files"
 }
