@@ -58,7 +58,7 @@ variable "volume_size" {
 variable "instance_profile" {
   description = "Use the ssm_prodile we built in ssm.tf or override with your own"
   type        = string
-  default     = "SSMInstanceProfile"
+  default     = "spot_instance_profile"
 }
 
 variable "max_instances" {

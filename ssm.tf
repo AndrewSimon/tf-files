@@ -112,56 +112,6 @@
 #  })
 #}
 
-# --- Required IAM Role/Profile for SSM ---
-
-resource "aws_iam_role" "ssm_role" {
-#  name = "EC2SSMRoleForSSHKey"
-  name = "EC2SSMRole"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Principal = {
-          Service = "ec2.amazonaws.com"
-        }
-        Action = "sts:AssumeRole"
-      }
-    ]
-  })
-}
-
-data "aws_iam_policy" "ssm_default_policy" {
-  arn = "arn:aws:iam::aws:policy/AmazonSSMManagedEC2InstanceDefaultPolicy"
-}
-
-resource "aws_iam_role" "ssm_default_host_management_role" {
-  name = "AWSSystemsManagerDefaultEC2InstanceManagementRole"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Principal = {
-          Service = "ec2.amazonaws.com"
-        }
-        Action = "sts:AssumeRole"
-      },
-    ]
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "ssm_default_host_management_attachment" {
-  role       = aws_iam_role.ssm_default_host_management_role.name
-  policy_arn = data.aws_iam_policy.ssm_default_policy.arn
-}
-
-# The actual configuration that tells the account/region to use this role as default
-# is not available as a direct Terraform resource. Please add manually.ssh root
-
-
 resource "aws_iam_role_policy_attachment" "ssm_policy" {
   role       = aws_iam_role.ssm_role.name
   # This AWS managed policy grants necessary permissions for SSM
@@ -169,6 +119,6 @@ resource "aws_iam_role_policy_attachment" "ssm_policy" {
 }
 
 resource "aws_iam_instance_profile" "ssm_profile" {
-  name = "EC2SSMInstanceProfileForSSHKey"
+  name = "SSMInstanceProfile"
   role = aws_iam_role.ssm_role.name
 }
