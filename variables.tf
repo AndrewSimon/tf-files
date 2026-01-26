@@ -34,13 +34,13 @@ variable "aws_subnet_tag" {
 
 variable "instance_type" {
   description = "Instance Type"
-  default = "t3a.micro"
+  default = "t3.micro"
 }
 
 variable "ami_id" {
   description = "Please subscribe to this TLC AMI ID for the spot instance before using tf."
   type        = string
-  default = "ami-038341691c58d3969"
+  default = "ami-02c9c9ed12aab4944"
 }
 
 variable "spot_market" {
