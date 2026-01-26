@@ -40,7 +40,7 @@ variable "instance_type" {
 variable "ami_id" {
   description = "Please subscribe to this TLC AMI ID for the spot instance before using tf."
   type        = string
-  default = "ami-01f02fed0e9e9e947"
+  default = "ami-038341691c58d3969"
 }
 
 variable "spot_market" {
