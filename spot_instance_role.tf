@@ -1,23 +1,27 @@
 # Terraform spot_instance_role.tf
-## 1) Create policy enablinb oidc jwt token from gh, with conditions
-## 2) Creates an ec2 policy lambda uses (in addition to other policies)
-## 3) Attaches th e policies to spot instance - this may be updated
+## 1) Create Trust policy enabling OIDC from gh with (source) conditions
+## 2) Create Trust policy enabling SSM to interact with ec2 instances
+## 3) Creates an ec2 policy lambda uses and attaches policies to the role
+## 4) Creates the spot instance profile with/from the spot instance role
 
 data "aws_iam_policy_document" "gh_ssm_assume_role" {
   statement {
-    effect = "Allow"
-    
+    effect = "Allow"    
     principals {
       type    = "Service"
-      identifiers = ["ec2.amazonaws.com","ssm.amazonaws.com"]
+      identifiers = ["ec2.amazonaws.com"]
       }
-
+    actions = ["sts:AssumeRole"]
+  }
+  
+  statement {
+    effect = "Allow"
     principals {
       type        = "Federated"
       identifiers = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:oidc-provider/token.actions.githubusercontent.com"]
     }
 
-    actions = ["sts:AssumeRoleWithWebIdentity","sts:AssumeRole"]
+    actions = ["sts:AssumeRoleWithWebIdentity"]
 
     condition {
       test     = "StringEquals"
@@ -114,11 +118,6 @@ output "role_arn" {
 data "aws_iam_role" "spot_instance_role" {
   name = "spot_instance_role"
 }
-
-# A data source to retrieve information about the AWS IAM policy for SSM full access
-#data "aws_iam_policy" "ssm_full_access" {
-#  arn = "arn:aws:iam::aws:policy/AmazonSSMFullAccess"
-#}
 
 resource "aws_iam_instance_profile" "spot_profile" {
   name = "spot_profile"
