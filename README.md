@@ -21,13 +21,17 @@ This is a terraform plan that:
 ## Prerequisites
 The packages and setup required to be installed before starting are:
 
-1. chrome (or similar) browser to access the AWS Console
+1. Chrome (or similar) browser to access the AWS Console
 2. git client
 3. awscliv2
-4. terraform
-5. An SSM parameter store value used for the AWS Security Group CIDR list
+4. Terraform
+5. SSM parameter store values for AWS Security Group CIDR list, GH Pat, GH Webhook secret
 6. An s3 bucket for the terraform 'backend' to use to store terraform state 
 
+## Git Client Install on your local device:
+```
+https://git-scm.com/book/en/v2/Getting-Started-Installing-Git
+```
 ## Install AWSCLI Version 2 on your local device
 1. On linux: `sudo dnf install awscli` or  On Windows: `choco install awscli`
 2. First time only, run and complete 'aws configure' - terraform can find your AWS credential file
@@ -43,7 +47,7 @@ https://www.terraform.io/intro/getting-started/install.html
 <P>The name of the bucket must be the same as the one you configure in config.tf
 
 ## Create an SSM parameter (not coded here)
-SSM parameter store can be used for sensitive data like <i>F/W (SG) IP allow ranges</i> that should not go into a public repository. Creating the store via terraform here would only push the secrets to another platform, like local environment variables or a tfvars file.
+SSM parameter store can be used for sensitive data like <i>F/W (SG) IP allow ranges</i> that should not go into a public repository. Using Terraform to create the store would bump secrets management to a less desirable method (like local environment variables or a tfvars file) and make retrieval of those values from SSM parameter store optional.
 
 1. Enter AWS Systems Manager
 2. Click Parameter Store
@@ -78,23 +82,24 @@ main.tf: Nothing needs to change. Optionally, change 'test2' to another VPC name
 3. To test, run: terraform plan
 4. To execute with automatic 'yes', run: terraform apply -auto-approve
 5. To override AZ placement of runner to us-east-1a (for example), run: terraform apply -auto-approve -var="aws_az=us-east-1a" -var="aws_subnet_tag=Public_1A"
-6. If no capacity for spot and/or want on-demand, run: terraform apply -auto-approve -var="spot_market=False"
-7. To cleanup, run: terraform destroy
+6. If override spot market and/or want on-demand, run: terraform apply -auto-approve -var="spot_market=False"
+7. To override (to 50Gb, for example) the default root filesystem, run: terraform apply -auto-approve -var="volume_size=50"  
+8. To cleanup, run: terraform destroy
 
 ### Trouble-shooting
 Most early problems will involve AWS credentials.  Ensure your user account can create resources in the console.  The `aws s3 mb` command will work as long as it is a <i>unique</i> bucket name and your account has the create bucket access policy.  Confirm in the console you can create and read an existing s3 bucket, if you cannot do so command-line.  Do the same type of access check via Console for the SSM parameter store, VPC component, and EC2 instance creation, as well.  Adjust user account roles and policies, as needed.
 
-For terraform errors, make sure the variable name that stores the <i>value</i>, such as bucket name, AWS key pair name, the SSM parameter store name, and so on, is not mismatched between the variable names and value types defined in variables.tf versus the resource variable names and value types expected in main.tf.  An example of a mismatch in value type is when the value is a string when it should be a list.  The example of a resource name mismatch is when the name given to a value in variables.tf is <i>xy-z</i> but the resource expects the name to be <i>xy_z</i>.  
+For terraform errors, make sure you run terraform init, first. Ensure the variable name that stores the <i>value</i>, such as bucket name, AWS key pair name, the SSM parameter store name, and so on, is not mismatched between the variable names and value types defined in variables.tf versus the resource variable names and value types expected in the other .tf files.  An example of a mismatch in value type is when the value is a string when it should be a list.  The example of a resource name mismatch is when the name given to a value in variables.tf is <i>xy-z</i> but the resource expects the name to be <i>xy_z</i>.  
 
 ## Maintainers
 
 AndrewSimon
 Written: 2016
-Modified: 12/2025 
+Modified: 12/2026 
 
 ### Copyright and license
 
-Copyright 2016-2025, Andrew Simon (asimon@asimon.net)
+Copyright 2016-2026, Andrew Simon (asimon@asimon.net)
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this work except in compliance with the License. You may obtain a copy of the License in the LICENSE file, or at:
 
