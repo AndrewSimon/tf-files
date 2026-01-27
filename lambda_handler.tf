@@ -4,7 +4,7 @@ data "aws_vpc" "main" {
     Name = var.vpc_name
   }
 }
-#  If your region does not have an 'F' AZ, change tags to "Public 1A" or "Public 1D"
+
 data "aws_subnets" "public" {
   filter {
     name   = "vpc-id"
@@ -29,7 +29,6 @@ output "spot_public_subnet_id" {
   # Get the ID of the first subnet in the list
   value = local.public_subnet_ids_list[0]
 }
-
 
 resource "local_file" "lambda_handler" {
   filename = "lambda_handler.py"
@@ -273,8 +272,6 @@ resource "aws_iam_policy" "ec2_run_policy" {
   })
 }
 
-
-
 # IAM role that the Lambda function will assume 
 resource "aws_iam_role" "lambda_execution_role" {
   name               = "lambda_execution_role"
@@ -340,6 +337,8 @@ resource "aws_lambda_function" "spot_runner" {
   }
 }
 
+# The real security is SSL - this is safe as long as github's SSL
+# private key AND the DNS source (port 53) you use are not compromised
 resource "aws_lambda_function_url" "spot_lambda_url" {
   function_name      = aws_lambda_function.spot_runner.function_name
   invoke_mode        = "RESPONSE_STREAM"

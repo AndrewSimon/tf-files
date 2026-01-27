@@ -1,7 +1,6 @@
 provider "aws" {
-## Use OIDC instead
-#  access_key = "XXXXXXXXXXXXXXXXXXXX"
-#  secret_key = "1234567890abcdefghijklmnopqrstuvwxyz+ABCDE"
+## Terraform can find aws creds in ~/.aws directory
+## Github creds are manually stored in SSM parameter store
   region     = "us-east-1"
 }
 
@@ -35,7 +34,7 @@ provider "github" {
   token        = "${data.aws_ssm_parameter.gh_pat.value}"
 }
 
-# Specify file path in variables.tf or replace var with pub key material here
+# public_key is optional if/when using key_name
 resource "aws_key_pair" "auth" {
   key_name   = "${var.key_name}"
   public_key = "${file(var.public_key_path)}" 

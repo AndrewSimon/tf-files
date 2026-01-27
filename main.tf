@@ -91,7 +91,7 @@ resource "aws_subnet" "Public_1D" {
 }
 
 ## If your region does not have an 'F' AZ -  comment this out entirely 
-## and update lamdba_handler.tf to use 'Public A' or 'Public D' for AZ 
+## and update lamdba_handler.tf to use 'Public_1A' or 'Public_1D' for AZ 
 resource "aws_subnet" "Public_1F" {
   vpc_id = data.aws_vpc.selected.id
   cidr_block              = "192.168.11.128/27"
@@ -101,18 +101,20 @@ resource "aws_subnet" "Public_1F" {
      }
 }
 
+## You will not be able to ssh into your instance if you
+## do not include your PC/laptop public IP in allowed CIDRs
 data "aws_ssm_parameter" "vpc_test2_default_sg_cidrs" {
       name = "vpc_test2_default_sg_cidrs"
 }
 
-## A new security group
+## Warning: this will alter a security group called 'default' if it exists
 resource "aws_security_group" "default" {
   name        = "default"
   description = "default VPC security group"
   vpc_id      = data.aws_vpc.selected.id
 
   # Access from anywhere to port 23 and up - ssh blocked from everywhere by default
-  # Add another ingress block like this one, change to 'from_port = 0' and cidr_blocks = ["y.o.ur.ip/32"]
+  # Comment this out if you do not need any open ports above port 22
   ingress {
     description = "exclude ports under 23"
     from_port   = 23
