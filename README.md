@@ -93,9 +93,9 @@ For terraform errors, make sure you run terraform init, first. Ensure the variab
 
 ## Maintainers
 
-AndrewSimon
+AndrewSimon (CEO/President of Technology Leadership, LLC)
 Written: 2016
-Modified: 12/2026 
+Modified: 1/2026 
 
 ### Copyright and license
 
