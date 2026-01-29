@@ -91,11 +91,19 @@ Most early problems will involve AWS credentials.  Ensure your user account can 
 
 For terraform errors, make sure you run terraform init, first. Ensure the variable name that stores the <i>value</i>, such as bucket name, AWS key pair name, the SSM parameter store name, and so on, is not mismatched between the variable names and value types defined in variables.tf versus the resource variable names and value types expected in the other .tf files.  An example of a mismatch in value type is when the value is a string when it should be a list.  The example of a resource name mismatch is when the name given to a value in variables.tf is <i>xy-z</i> but the resource expects the name to be <i>xy_z</i>.  
 
+For webhook errors and return codes:
+-We couldn't deliver this payload: this usually means there is no capacity for your spot instances. But, wait a minute or two sometimes as the hook may have worked but aws exceeded Github 10 second wait time to respond
+-Timeout: this usually means there is no capacity for your spot instances. But, wait a minute or two as sometimes the hook worked but aws exceeded Github 10 second wait time to respond
+-Return code 200:  This means the webhook succeeded. Verify in the details that an instance was launched, otherwise it will give a count of already running instances. To increase the number of allowed runners to 10, for example, override with -var="max_instances=10"
+
 ## Maintainers
 
 AndrewSimon (CEO/President of Technology Leadership, LLC)
+
 Written: 2016
+
 Modified: 1/2026 
+
 
 ### Copyright and license
 
