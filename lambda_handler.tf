@@ -72,7 +72,39 @@ sudo -u gh-runner bash -c "cd /home/gh-runner && ./config.sh --url https://githu
 nohup sudo -u gh-runner bash -c 'cd /home/gh-runner && ./run.sh' &
 """
 
+def validate_signature(github_signature, payload_body, secret_token):
+    """
+    Validates the GitHub webhook signature.
+    """
+    if not github_signature.startswith("sha256="):
+        return False
+    expected_signature = github_signature.split("=")[1]
+    # Calculate the HMAC-SHA256 hash of the payload body
+    h = hmac.new(secret_token.encode('utf-8'), payload_body, hashlib.sha256)    
+    calculated_signature = h.hexdigest()
+    # Compare signatures using a timing-safe method
+    return compare_digest(calculated_signature, expected_signature)
+
+
 def lambda_handler(event, context):
+    """
+        Validates the GH webhook secret via it's signature before anything else
+    """
+    signature = event['headers'].get('x-hub-signature-256') or event['headers'].get('X-Hub-Signature-256')
+    body = event['body']
+    if event.get('isBase64Encoded'):
+        import base64
+        body = base64.b64decode(body)
+    else:
+        body = body.encode('utf-8')
+
+    if not signature or not validate_signature(signature, body, WEBHOOK_SECRET):
+        return {
+            'gotSecret': WEBHOOK_SECRET,
+            'statusCode': 401,
+            'body': json.dumps('Invalid signature - if gotSecret matches SSM store value, SSM does not match what GH webhook sent.')
+        }
+        
     """
     Checks for a running spot or on-demand instance with a specific tag and launches one if none exists.
     """
