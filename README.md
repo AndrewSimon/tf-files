@@ -17,6 +17,7 @@ This is a terraform plan that:
 13. Contains a github action to queue a job that runs when the runner is available
 14. The github action runs a simple aws api via boto3 to show the runner works
 15. Creates a lot of IAM policy documents and roles for steps 1-14 above to work
+16. Runs a github actions job that prints the self-hosted runners OS, currently: Linux-5.15.0-101.103.2.1.el9uek.x86_64-x86_64-with-glibc2.34
 
 ## Prerequisites
 The packages and setup required to be installed before starting are:
