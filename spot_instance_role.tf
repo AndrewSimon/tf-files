@@ -32,7 +32,7 @@ data "aws_iam_policy_document" "gh_ssm_assume_role" {
     condition {
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:AndrewSimon/tf-files:*"]
+      values   = ["repo:${var.repo_name}:*"]
     }
   } 
 }

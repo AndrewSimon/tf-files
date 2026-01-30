@@ -66,3 +66,9 @@ description = "Maximum number of running instances allowed by SpotRunner lambda_
   type        = string
   default     = "1"
 }
+
+variable "repo_name" {
+  description = "Change below to push/pull from your repo"
+  type        = string
+  default     = "AndrewSimon/tf-files"
+}
