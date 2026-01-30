@@ -38,6 +38,11 @@ resource "local_file" "lambda_handler" {
 
 import boto3
 import logging
+import hmac
+import hashlib
+import json
+import secrets
+from hmac import compare_digest
 
 # Configure logging
 logger = logging.getLogger()
