@@ -39,7 +39,7 @@ jobs:
       - name: Run Python shell commands to check for S3 bucket via boto3
         shell: python
         run:  |
-           print("I can run a build if you let me!")
+           import platform; print(platform.platform())
 #          import os; import boto3; import botocore.exceptions; bucket_name = os.getenv("S3_BUCKET_NAME"); s3 = boto3.client("s3"); print(f"Bucket '{bucket_name}' exists") if s3.head_bucket(Bucket=bucket_name) else print(f"Bucket '{bucket_name}' does not exist") if not isinstance(e := None, botocore.exceptions.ClientError) or e.response["Error"]["Code"] != "404" else None;
           
 #        env:
