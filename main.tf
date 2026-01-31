@@ -173,6 +173,15 @@ resource "aws_cloudwatch_event_bus" "custom_bus" {
   name = "custom-event-bus" # Required: The name of your custom event bus
 }
 
+# Create a repository secret for OIDC - optional, ec2 instance profile suffices.
+# The webhook should call OIDC and get the ACCOUNT_ID, as needed.
+locals { repo = basename(var.repo_name) }
+resource "github_actions_secret" "account_id" {
+  repository      = "${local.repo}"
+  secret_name     = "ACCOUNT_ID"
+  plaintext_value = ""
+}
+
 data "github_actions_registration_token" "spot_runner" {
   repository = "tf-files"
 }

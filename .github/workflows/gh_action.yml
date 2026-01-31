@@ -1,46 +1,47 @@
-name: Runs dependency installs and ad hoc build on ephemeral gh runners
+name: Runs dependency installs and test script on dynamically provisioned gh runners
 
 on: [push]
 
 jobs:
-  list-s3:
-    #runs-on: ubuntu-latest
+  complete-lifecycle:
+    #runs-on: ubuntu-latest # For GH Runners, not self-hosted
     runs-on: self-hosted
     environment: public 
     permissions:
       id-token: write # Required for OIDC authentication
       contents: read
     steps:
-## This gives GH creds to do AWS stuff using the spot runner
+## The id-token above plus the commented steps below gives GH actions
+## the creds to do AWS stuff using any runner, with or without TLC
+## Terraform (tf-files) or whether it is self-hosted or not.
+## However, when provisioning the gh runner with tf-files,
+## you do not need the aws-actions module because we already 
+## attached the 'spot_instance_role' via the runner's instance profile.
+## AWS creds are used here to complete the dynamic provision lifecycle
 #      - name: Checkout repository
-
 #        uses: actions/checkout@v4
-#        
 #      - name: Configure AWS Credentials
 #        uses: aws-actions/configure-aws-credentials@v5
 #        with:
-#          # Use OpenID Connect (OIDC) for enhanced security (recommended)
-#          role-to-assume: arn:aws:iam::${{ secrets.ACCOUNT_NAME }}:role/spot_instance_role
+#          # Use an AWS role in your account with suitable permissions, if not the one below
+#          role-to-assume: arn:aws:iam::${{ secrets.ACCOUNT_ID }}:role/spot_instance_role
 #          aws-region: us-east-1
 
-      - name: Install Python and Dependencies
+      - name: Install Dependencies Required to Complete Dynamic Provisioning Lifecycle
         run: |
-             if ! command -v pip3 &> /dev/null
+             if ! command /home/gh-runner/.local/lib/aws/bin/aws --version  &> /dev/null
              then
-                echo "pip3 not found, installing..."
-                sudo dnf install python pip -y
-                pip install boto3 requests 
+                cd /home/gh-runner/
+                curl -o awscli-bundle.zip https://s3.amazonaws.com/aws-cli/awscli-bundle.zip
+                python -m zipfile -e awscli-bundle.zip .
+                python ./awscli-bundle/install 
              else
-                echo "pip3 is already installed, continuing..."
-                pip install boto3 requests
+                echo "AWS CLI is already installed, printing version..."
+                /home/gh-runner/.local/lib/aws/bin/aws --version 
              fi
-             
-
-      - name: Run Python shell commands to check for S3 bucket via boto3
+#  Replace the step below with the step(s) in your actual workflow
+      - name: Run Python shell commands to check os and node name
         shell: python
         run:  |
-           import platform; print(platform.platform())
-#          import os; import boto3; import botocore.exceptions; bucket_name = os.getenv("S3_BUCKET_NAME"); s3 = boto3.client("s3"); print(f"Bucket '{bucket_name}' exists") if s3.head_bucket(Bucket=bucket_name) else print(f"Bucket '{bucket_name}' does not exist") if not isinstance(e := None, botocore.exceptions.ClientError) or e.response["Error"]["Code"] != "404" else None;
-          
-#        env:
-#          S3_BUCKET_NAME: win11-tlc
+           import platform; print(platform.platform()); print(platform.node())
+
