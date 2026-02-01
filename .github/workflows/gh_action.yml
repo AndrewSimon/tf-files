@@ -34,6 +34,7 @@ jobs:
                 cd /home/gh-runner/          
                 curl  -o awscliv2.zip https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
                 python -m zipfile -e awscliv2.zip .
+                chmod 755 /home/gh-runner/aws/dist/aws
                 bash ./aws/install -i ~/aws-cli -b ~/bin
                 chmod 755 /home/gh-runner/bin/aws
                 /home/gh-runner/bin/aws --version
