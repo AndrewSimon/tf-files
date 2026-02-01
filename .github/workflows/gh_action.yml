@@ -24,6 +24,7 @@ jobs:
 #        uses: aws-actions/configure-aws-credentials@v5
 #        with:
 #          # Use an AWS role in your account with suitable permissions, if not the one below
+#          # Manually enter the ACCOUNT_ID value in GH Secrets or update in tf-files/main.tf
 #          role-to-assume: arn:aws:iam::${{ secrets.ACCOUNT_ID }}:role/spot_instance_role
 #          aws-region: us-east-1
 
