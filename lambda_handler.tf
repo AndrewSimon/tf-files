@@ -228,7 +228,7 @@ def lambda_handler(event, context):
         #waiter.wait(InstanceIds=[instance_id])
         return {
             'statusCode': 200,
-            'body': f"{MKT_OPT} instance {instance_id} is now launched!"
+            'body': f"Found {instance_count} instances running while {MAX} allowed, {MKT_OPT} instance {instance_id} is now launched!"
         }
 
     except Exception as e:
