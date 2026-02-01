@@ -64,7 +64,7 @@ variable "instance_profile" {
 variable "max_instances" {
 description = "Maximum number of running instances allowed by lambda_handler. Keep high if terminating instances at completion"
   type        = string
-  default     = "8"
+  default     = "10"
 }
 
 variable "repo_name" {
