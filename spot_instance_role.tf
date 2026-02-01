@@ -54,10 +54,11 @@ resource "aws_iam_policy" "spot_policy" {
     Version = "2012-10-17",
     Statement = [
       {
-        Sid    = "AllowSpotInstanceCreationWithConditions",
+        Sid    = "AllowInstanceCreationAndTermination",
         Effect = "Allow",
         Action = [
           "ec2:RequestSpotInstances",
+          "ec2:TerminateInstances",
           "ec2:RunInstances" # RequestSpotInstances might use RunInstances internally
         ],
         Resource = "arn:aws:ec2:*:*:instance/*", 
