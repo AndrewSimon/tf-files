@@ -36,6 +36,8 @@ jobs:
                 python -m zipfile -e awscliv2.zip .
                 bash ./aws/install -i ~/aws-cli -b ~/bin
                 chmod 755 /home/gh-runner/bin/aws
+                /home/gh-runner/bin/aws --version
+                env
              else
                 echo "AWS CLI is already installed, printing AWSCLI version and env vars..."
                 /home/gh-runner/bin/aws --version
