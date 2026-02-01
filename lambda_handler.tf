@@ -52,6 +52,7 @@ EC2_CLIENT = boto3.client('ec2', region_name='${var.aws_region}')
 # Right now, this deploys to whatever your 'default' vpc is set to in your account, 
 # not the one tf-files just created.  We default to Az 'f' in hopes of lower spot costs. 
 #
+AWS_REGION = '${var.aws_region}'
 AVAILABILITY_ZONE = '${var.aws_az}'
 AMI_ID = '${var.ami_id}' # Technology Leadership's GHR AMI 
 INSTANCE_TYPE = '${var.instance_type}'
@@ -71,6 +72,16 @@ MAX = ${var.max_instances} #Integer
 MKT_OPT = "spot" if SPOT_MARKET else "on-demand"
 
 USERDATA = f"""#!/bin/bash
+#!/bin/bash
+#  runner hook to complete dynamically provisioned instance lifecycle
+echo "INSTANCE_ID=\$(curl -s http://169.254.169.254/latest/meta-data/instance-id)" > /home/gh-runner/bin/complete_lifecycle.sh
+echo "AWS_REGION=\$(curl -s http://169.254.169.254/latest/meta-data/placement/region)" >> /home/gh-runner/bin/complete_lifecycle.sh
+echo "aws ec2 terminate-instances --instance-ids $INSTANCE_ID --region {AWS_REGION}" >> /home/gh-runner/bin/complete_lifecycle.sh
+chmod +x /home/gh-runner/bin/complete_lifecycle.sh
+# Comment out the below line to NOT terminate instance after running a job
+export ACTIONS_RUNNER_HOOK_JOB_COMPLETED=/home/gh-runner/bin/complete_lifecycle.sh
+
+# Configure runner and connect to server
 export DEFAULT_MAX=1
 export RUNNER_TOKEN=$(curl -s -L -X POST -H "Accept: application/vnd.github+json" -H "Authorization: Bearer {GH_PAT}" -H "X-GitHub-Api-Version: 2022-11-28" https://api.github.com/repos/{REPO_NAME}/actions/runners/registration-token| grep token|awk -F\\" '{{print $4}}')
 sudo -u gh-runner bash -c "cd /home/gh-runner && ./config.sh remove --token $RUNNER_TOKEN"
