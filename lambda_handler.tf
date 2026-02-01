@@ -72,7 +72,6 @@ MAX = ${var.max_instances} #Integer
 MKT_OPT = "spot" if SPOT_MARKET else "on-demand"
 
 USERDATA = f"""#!/bin/bash
-#!/bin/bash
 #  runner hook to complete dynamically provisioned instance lifecycle
 echo "INSTANCE_ID=\$(curl -s http://169.254.169.254/latest/meta-data/instance-id)" > /home/gh-runner/bin/complete_lifecycle.sh
 echo "AWS_REGION=\$(curl -s http://169.254.169.254/latest/meta-data/placement/region)" >> /home/gh-runner/bin/complete_lifecycle.sh
