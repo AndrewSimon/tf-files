@@ -75,13 +75,13 @@ USERDATA = f"""#!/bin/bash
 #  runner hook to complete dynamically provisioned instance lifecycle
 
 #### MUST BE IDMSV2! Below is IDMSV1
-echo "TOKEN=\$(curl -X PUT \"http://169.254.169.254/latest/api/token\" -H \"X-aws-ec2-metadata-token-ttl-seconds: 21600\")"  > /home/gh-runner/bin/complete_lifecycle.sh
-echo "INSTANCE_ID=\$(curl -H \"X-aws-ec2-metadata-token: \$TOKEN\" 169.254.169.254/latest/meta-data/instance-id)" >> /home/gh-runner/bin/complete_lifecycle.sh
-echo "AWS_REGION=\$(curl -s http://169.254.169.254/latest/meta-data/placement/region)" >> /home/gh-runner/bin/complete_lifecycle.sh
-echo "/home/gh-runner/bin/aws ec2 terminate-instances --instance-ids \$INSTANCE_ID --region {AWS_REGION}" >> /home/gh-runner/bin/complete_lifecycle.sh
+echo "TOKEN=\$(curl -X PUT 'http://169.254.169.254/latest/api/token' -H 'X-aws-ec2-metadata-token-ttl-seconds: 21600')"  > /home/gh-runner/bin/complete_lifecycle.sh
+echo "INSTANCE_ID=\$(curl -H 'X-aws-ec2-metadata-token:' $TOKEN 169.254.169.254/latest/meta-data/instance-id)" >> /home/gh-runner/bin/complete_lifecycle.sh
+echo "AWS_REGION=\$(curl -H 'X-aws-ec2-metadata-token:' $TOKEN 169.254.169.254/latest/meta-data/placement/region)" >> /home/gh-runner/bin/complete_lifecycle.sh
+echo "/home/gh-runner/bin/aws ec2 terminate-instances --instance-ids \$INSTANCE_ID --region \$AWS_REGION" >> /home/gh-runner/bin/complete_lifecycle.sh
 chmod +x /home/gh-runner/bin/complete_lifecycle.sh
 # Comment out the below line to NOT terminate instance after running a job
-export ACTIONS_RUNNER_HOOK_JOB_COMPLETED=/home/gh-runner/bin/complete_lifecycle.sh
+echo ACTIONS_RUNNER_HOOK_JOB_COMPLETED=/home/gh-runner/bin/complete_lifecycle.sh >> /etc/environment
 
 # Configure runner and connect to server
 export DEFAULT_MAX=1
