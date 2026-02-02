@@ -24,6 +24,9 @@ data "aws_vpc" "selected" {
   tags = {
     Name = var.vpc_name
   }
+   depends_on = [
+     aws_vpc.test2
+  ]
 }
 
 # Create an internet gateway to give our subnet access to the outside world
@@ -183,7 +186,7 @@ resource "github_actions_secret" "account_id" {
 }
 
 data "github_actions_registration_token" "spot_runner" {
-  repository = "tf-files"
+  repository = "${local.repo}"
 }
 
 output "registration_token" {
