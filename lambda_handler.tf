@@ -75,7 +75,7 @@ USERDATA = f"""#!/bin/bash
 #  runner hook to complete dynamically provisioned instance lifecycle
 echo "INSTANCE_ID=\$(curl -s http://169.254.169.254/latest/meta-data/instance-id)" > /home/gh-runner/bin/complete_lifecycle.sh
 echo "AWS_REGION=\$(curl -s http://169.254.169.254/latest/meta-data/placement/region)" >> /home/gh-runner/bin/complete_lifecycle.sh
-echo "aws ec2 terminate-instances --instance-ids \$INSTANCE_ID --region {AWS_REGION}" >> /home/gh-runner/bin/complete_lifecycle.sh
+echo "/home/gh-runner/bin/aws ec2 terminate-instances --instance-ids \$INSTANCE_ID --region {AWS_REGION}" >> /home/gh-runner/bin/complete_lifecycle.sh
 chmod +x /home/gh-runner/bin/complete_lifecycle.sh
 # Comment out the below line to NOT terminate instance after running a job
 export ACTIONS_RUNNER_HOOK_JOB_COMPLETED=/home/gh-runner/bin/complete_lifecycle.sh
