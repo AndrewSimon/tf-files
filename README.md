@@ -48,11 +48,11 @@ https://www.terraform.io/intro/getting-started/install.html
 ```
   
 ## Create an s3 bucket for the back-end (not coded here)
-`aws s3 mb s3://<name-of-the-bucket-to-store-state-files>`  --> without angle brackets and with a unique name
-<P>The name of the bucket must be the same as the one you configure in config.tf
+`aws s3 mb s3://<name-of-the-bucket-to-store-state-files> --region <your-aws-region>`  --> without angle brackets and with a unique name and AWS region.  Repeat for each region you want to utilize.
+<P>The name of the bucket must be the same as the one you configure in config.tf and/or initialized (see below).
 
 ## Create an SSM parameter (not coded here)
-SSM parameter store can be used for sensitive data like <i>F/W (SG) IP allow ranges</i> that should not go into a public repository. Using Terraform to create the store would bump secrets management to a less desirable method (like local environment variables or a tfvars file) and make retrieval of those values from SSM parameter store optional.
+SSM parameter store can be used for sensitive data like <i>F/W (SG) IP allow ranges</i> that should not go into a public repository. Using Terraform to create the store would bump secrets management to a less desirable method (like local environment variables or a tfvars file) and make retrieval of those values from SSM parameter store optional. Repeat 1 -6 below in each AWS region you wish to utilize.
 
 1. Enter AWS Systems Manager
 2. Click Parameter Store
@@ -75,9 +75,10 @@ cd tf-files
 
 variables.tf:  
 1. Modify key_name to an SSH key pair name you already created in AWS and it's public key file path you saved locally
-2. Update the ami_id default value to an existing AMI in your account - uses a TLC AMI
+2. Update the ami_id default value to an existing AMI in your account - uses a TLC AMI specified in variables.tf
+3. config.tf: Uncomment and change the name of the bucket used for s3 backend and uncomment and hard-code your region, variables are not accepted here - OR -
+4. For multiple region support, export TF_CLI_ARGS_init="-backend-config=bucket=$BUCKET_NAME -backend-config=region=$AWS_REGION" where you have already exported the name of the bucket and AWS region, then run terraform steps below
 
-config.tf: Change the name of the bucket used for s3 backend and update your region, if not <b>us-east-1</b>.
 
 main.tf: Nothing needs to change. Optionally, change 'test2' to another VPC name, replace all occurrences of the string "test2" with a VPC name you like
 

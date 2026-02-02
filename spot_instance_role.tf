@@ -54,7 +54,7 @@ resource "aws_iam_policy" "spot_policy" {
     Version = "2012-10-17",
     Statement = [
       {
-        Sid    = "AllowSpotInstanceCreationWithConditions",
+        Sid    = "AllowInstanceCreationAndTermination",
         Effect = "Allow",
         Action = [
           "ec2:RequestSpotInstances",
@@ -63,7 +63,7 @@ resource "aws_iam_policy" "spot_policy" {
         Resource = "arn:aws:ec2:*:*:instance/*", 
       },
       {
-        Sid    = "AllowRequiredDescribeActions",
+        Sid    = "AllowRequiredDescribeAndTerminateActions",
         Effect = "Allow",
         Action = [
           "ec2:DescribeInstances",
@@ -71,6 +71,7 @@ resource "aws_iam_policy" "spot_policy" {
           "ec2:DescribeTags",
           "ec2:DescribeLaunchTemplates",
           "ec2:DescribeImages",
+          "ec2:TerminateInstances",
           "ec2:DescribeSubnets"       
         ],
         Resource = "*"

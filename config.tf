@@ -1,7 +1,7 @@
 provider "aws" {
 ## Terraform can find aws creds in ~/.aws directory
 ## Github creds are manually stored in SSM parameter store
-  region     = "us-east-1"
+  region     = "${var.aws_region}"
 }
 
 terraform {
@@ -16,9 +16,11 @@ terraform {
     }
   }
   backend "s3" {
-    bucket = "technology-leadership-terraform-state"
+    # export your BUCKET_NAME and set TF_CLI_ARGS_init or hard-code
+#    bucket = "technology-leadership-terraform-state"
     key    = "terraform.tfstate"
-    region = "us-east-1"
+    # export your AWS_REGION and set TF_CLI_ARGS_init or hard-code
+#    region = "${var.aws_region}"
   }
 }
 

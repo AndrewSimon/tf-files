@@ -62,9 +62,9 @@ variable "instance_profile" {
 }
 
 variable "max_instances" {
-description = "Maximum number of running instances allowed by SpotRunner lambda_handler"
+description = "Maximum number of running instances allowed by lambda_handler. Keep high if terminating instances at completion"
   type        = string
-  default     = "1"
+  default     = "10"
 }
 
 variable "repo_name" {
