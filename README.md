@@ -15,12 +15,10 @@ This is a terraform plan that:
 11. Creates an AWS lambda function and lambda url for the webhook to contact
 12. Lambda uses boto3 to instantiate a spot instance to create a github self-hosted runner
 13. Contains a github action to queue a job that runs when the runner is available
-14. The github action runs a simple aws api via boto3 to show the runner works
+14. The github action installs dependencies, prints runner's OS (currently: Linux-5.15.0-101.103.2.1.el9uek.x86_64-x86_64-with-glibc2.34) to show it is your runner and it works, and sleeps to help create a queue for testing multiple jobs
 15. Creates a lot of IAM policy documents and roles for steps 1-14 above to work
-16. Runs a github actions job that prints the self-hosted runners OS, currently: Linux-5.15.0-101.103.2.1.el9uek.x86_64-x86_64-with-glibc2.34
 
-The Github Actions workflow demonstrates how to complete the Dynamic Runner lifecycle:
-
+The Github Actions workflow describes the dependencies and how to modify it to disable the Dynamic Runner life-cycle for that job/repo, until reverted.  This is intentional and does return some control of the life-cycle from the 'administrator' back to the 'developer'.  You will have to add the dependencies via user-data and/or a new AMI image to block the developers' ability to disable the life-cycle.
 
 
 ## Prerequisites
@@ -101,7 +99,7 @@ For webhook errors and return codes:
 1. We couldn't deliver this payload: this usually means there is no capacity for your spot instances. But, wait a minute or two sometimes as the hook may have worked but AWS exceeded Github 10 second wait time to respond
 2. Timeout: this usually means there is no capacity for your spot instances. But, wait a minute or two as sometimes the hook worked but AWS exceeded Github 10 second wait time to respond
 3. Return code 200:  This means the webhook succeeded. Verify in the details that an instance was launched, otherwise it will give a count of already running instances. To increase the number of allowed runners to 10, for example, override with -var="max_instances=10"
-4. Return code 401 - Invalid Signature: The webhook-secret does not match between the repository commit-hook and SSM.  Fix it in either SSM or the GH Webhook for that repo.  As a forged SSL from outside github.com will have been completely blocked from connecting to the lambda url, thus could not have sent lambda a webhook secret, it *must* be someone inside gitub.com domain who stumbled upon your Amazon lambda url, even though there is a 1 in 4e+54 chance of that happening (the chance of picking the right atom in Avagrado's number is *only* 1 in 6e+23), and sent you the wrong secret or is trying to 'hack' you.  It is much more likely someone who has access to the webhook's repo where you are seeing this has updated the webhook secret without telling you.  Alternately, they have access to SSM and changed it there without telling you.
+4. Return code 401 - Invalid Signature: The webhook-secret does not match between the repository commit-hook and SSM.  Fix it in either SSM or the GH Webhook for that repo.  As a forged SSL from outside github.com will have been completely blocked from connecting to the lambda url, thus could not have sent lambda a webhook secret, it *must* be someone inside gitub.com domain who stumbled upon your Amazon lambda url, even though there is a 1 in 1.5e+54 chance of that happening (the chance of picking the right atom in Avagrado's number is *only* 1 in 6e+23), and sent you the wrong secret or worse, is trying to 'hack' you.  It is *much* more likely, though, that someone who has access to the webhook's repo where you are seeing this has updated the webhook secret without telling you.  Alternately, they have access to SSM and changed it there without telling you.  The rarity of hitting your lambda url is why the web secret is completely unnecessary; but for 'best practices', I waste your valuable (more so than a web secret) electrons verifying the signature for you, anyway. 
 
 ## Maintainers
 

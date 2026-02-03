@@ -74,7 +74,7 @@ MKT_OPT = "spot" if SPOT_MARKET else "on-demand"
 USERDATA = f"""#!/bin/bash
 #  runner hook to complete dynamically provisioned instance lifecycle
 
-#### MUST BE IDMSV2! Below is IDMSV1
+#### DEFAULT RUN_INSTANCES IS TOKENS REQUIRED MEANING USER-DATA MUST USE IDMSv2!
 echo "TOKEN=\$(curl -X PUT 'http://169.254.169.254/latest/api/token' -H 'X-aws-ec2-metadata-token-ttl-seconds: 21600')"  > /home/gh-runner/bin/complete_lifecycle.sh
 echo "INSTANCE_ID=\$(curl -H \\"X-aws-ec2-metadata-token: \$TOKEN\\" 169.254.169.254/latest/meta-data/instance-id)" >> /home/gh-runner/bin/complete_lifecycle.sh
 echo "AWS_REGION=\$(curl -H \\"X-aws-ec2-metadata-token: \$TOKEN\\" 169.254.169.254/latest/meta-data/placement/region)" >> /home/gh-runner/bin/complete_lifecycle.sh

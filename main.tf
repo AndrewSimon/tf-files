@@ -199,7 +199,7 @@ locals { repo = basename(var.repo_name) }
 resource "github_actions_secret" "account_id" {
   repository      = "${local.repo}"
   secret_name     = "ACCOUNT_ID"
-  plaintext_value = ""  # "${data.aws_caller_identity.current.account_id}" to store in GH
+  plaintext_value = ""  # "${data.aws_caller_identity.current.account_id}" will store in GH
 }
 
 data "github_actions_registration_token" "spot_runner" {

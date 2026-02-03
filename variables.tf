@@ -38,9 +38,9 @@ variable "instance_type" {
 }
 
 variable "ami_id" {
-  description = "Subscribe to this AMI ID for the spot instance before using tf-files."
+  description = "Subscribe to https://aws.amazon.com/marketplace/pp/prodview-zsmcixdrlp2ti for the correct AMI ID."
   type        = string
-  default = "ami-00105ec16deadf5b2"
+  default = "ami-00105ec16deadf5b2" # This may not be the Marketplace AMI ID in our region
 }
 
 variable "spot_market" {
