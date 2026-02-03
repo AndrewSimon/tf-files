@@ -103,7 +103,7 @@ resource "aws_subnet" "Public_1D" {
   vpc_id = data.aws_vpc.selected.id
   cidr_block              = "192.168.10.128/27"
   map_public_ip_on_launch = true
-  availability_zone = "${local.az_a}"
+  availability_zone = "${local.az_d}"
   tags                    = {
      "Name" = "Public_1D" 
      }
