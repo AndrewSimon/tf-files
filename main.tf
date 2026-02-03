@@ -58,20 +58,34 @@ resource "aws_route_table" "public_route_table" {
 #   gateway_id             = "${aws_internet_gateway.gw1.id}"
 # }
 
+locals {
+  # The value of availability zone is derived from region plus letters a-f
+  # Useful for building out the VPC in regions. Region need to have atleast 
+  # 4 regions. o ther than us-east-1, use ap-northeast-2
+  az_a = "${var.aws_region}a"
+  az_b = "${var.aws_region}b"
+  az_c = "${var.aws_region}c"
+  az_d = "${var.aws_region}d"
+  az_f = "${var.aws_region}f"
+}
+
 # Create 5 subnets to launch our instances into
 # The first two are private, the remaining three public
 resource "aws_subnet" "Private_1A" {
   vpc_id = data.aws_vpc.selected.id
   cidr_block              = "192.168.10.192/27"
+  availability_zone = "${local.az_a}"
   map_public_ip_on_launch = false
   tags                    = {
      "Name" = "Private_1A" 
      }
 }
+
 resource "aws_subnet" "Private_1D" {
   vpc_id = data.aws_vpc.selected.id
   cidr_block              = "192.168.10.224/27"
   map_public_ip_on_launch = false
+  availability_zone = "${local.az_d}"  
   tags                    = {
      "Name" = "Private_1D" 
      }
@@ -80,6 +94,7 @@ resource "aws_subnet" "Public_1A" {
   vpc_id = data.aws_vpc.selected.id
   cidr_block              = "192.168.10.64/27"
   map_public_ip_on_launch = true
+  availability_zone = "${local.az_a}"
   tags                    = {
      "Name" = "Public_1A" 
      }
@@ -88,6 +103,7 @@ resource "aws_subnet" "Public_1D" {
   vpc_id = data.aws_vpc.selected.id
   cidr_block              = "192.168.10.128/27"
   map_public_ip_on_launch = true
+  availability_zone = "${local.az_a}"
   tags                    = {
      "Name" = "Public_1D" 
      }
@@ -99,6 +115,7 @@ resource "aws_subnet" "Public_1F" {
   vpc_id = data.aws_vpc.selected.id
   cidr_block              = "192.168.11.128/27"
   map_public_ip_on_launch = true
+  availability_zone = "${local.az_f}"
   tags                    = {
      "Name" = "Public_1F" 
      }
