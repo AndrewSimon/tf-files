@@ -404,6 +404,7 @@ resource "aws_lambda_function_url" "spot_lambda_url" {
   function_name      = aws_lambda_function.spot_runner.function_name
   invoke_mode        = "RESPONSE_STREAM"
   authorization_type = "NONE" # Restrict access with 'AWS_IAM'
+  region = "${local.region_name}"
   cors {
     # Origins that can access the function URL
     allow_origins = ["https://api.github.com", "https://github.com"]
