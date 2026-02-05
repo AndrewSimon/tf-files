@@ -74,15 +74,14 @@ cd tf-files
 variables.tf:  
 1. Modify key_name to an SSH key pair name you already created in AWS and it's public key file path you saved locally
 2. Update the ami_id default value to an existing AMI in your account - uses a TLC AMI specified in variables.tf
-3. config.tf: Uncomment and change the name of the bucket used for s3 backend and uncomment and hard-code your region, variables are not accepted here - OR -
-4. For multiple region support, export TF_CLI_ARGS_init="-backend-config=bucket=$BUCKET_NAME -backend-config=region=$AWS_REGION" where you have already exported the name of the bucket and AWS region, then run terraform steps below
-
+3. config.tf: Uncomment and change the name of the bucket used for s3 backend and uncomment your region, variables are not accepted here - OR -
+4. We have config.tf commented backend values to more easily support multiple regions as terraform init DOES support variables. Just run *export TF_CLI_ARGS_init="-backend-config=bucket=$BUCKET_NAME -backend-config=region=$AWS_REGION"* where you have already exported $BUCKET_NAME (the name of the s3 backend bucket) and AWS_REGION, then run terraform steps below
 
 main.tf: Nothing needs to change. Optionally, change 'test2' to another VPC name, replace all occurrences of the string "test2" with a VPC name you like
 
 ### Run command-line Terraform commands to test, execute and destroy
 1. cd tf-files
-2. First time only, run: terraform init
+2. First time only, run: terraform init (or terraform init --reconfigure)
 3. To test, run: terraform plan
 4. To execute with automatic 'yes', run: terraform apply -auto-approve
 5. To override AZ placement of runner to us-east-1a (for example), run: terraform apply -auto-approve -var="aws_az=us-east-1a" -var="aws_subnet_tag=Public_1A"

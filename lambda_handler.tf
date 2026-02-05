@@ -3,9 +3,13 @@ data "aws_vpc" "main" {
   tags = {
     Name = var.vpc_name
   }
+  depends_on = [
+    local.vpc_id
+  ]
 }
 
 data "aws_subnets" "public" {
+  count = var.create_vpc ? 0 : 1
   filter {
     name   = "vpc-id"
     values = [data.aws_vpc.main.id] 
@@ -13,6 +17,9 @@ data "aws_subnets" "public" {
   tags = {
     Name = var.aws_subnet_tag
   }
+  depends_on = [
+    local.vpc_id
+  ]
 }
 
 data "aws_ssm_parameter" "gh_webhook_secret" {
@@ -20,15 +27,18 @@ data "aws_ssm_parameter" "gh_webhook_secret" {
       with_decryption = true
 }
 
+# If creating a VPC, use the subnet resource, otherwise use data
 locals {
-  # Convert the set of IDs to a list for easier indexing
-  public_subnet_ids_list = tolist(data.aws_subnets.public.ids)
+  subnet_id = var.create_vpc ? aws_subnet.Public_1D.id : data.aws_subnets.public[0].id
+  depends_on = [
+    local.vpc_id
+  ]
 }
 
-output "spot_public_subnet_id" {
-  # Get the ID of the first subnet in the list
-  value = local.public_subnet_ids_list[0]
-}
+#output "spot_public_subnet_id" {
+#  # Get the ID of the first subnet in the list
+#  value = local.public_subnet_ids_list[0]
+#}
 
 resource "local_file" "lambda_handler" {
   filename = "lambda_handler.py"
@@ -56,7 +66,7 @@ AWS_REGION = '${var.aws_region}'
 AVAILABILITY_ZONE = '${var.aws_az}'
 AMI_ID = '${var.ami_id}' # Technology Leadership's GHR AMI 
 INSTANCE_TYPE = '${var.instance_type}'
-SUBNET_ID = '${local.public_subnet_ids_list[0]}'
+SUBNET_ID = '${local.subnet_id}'
 KEY_NAME = '${var.key_name}'
 TAG_KEY = 'runner'
 TAG_VALUE = 'true' # or any value, e.g., 'active' as we check for key
@@ -407,6 +417,27 @@ resource "aws_lambda_function_url" "spot_lambda_url" {
     # Maximum amount of time - set this to match webhook timeout
     max_age = 10
     }
+}
+
+## Due to multi-region support, we need to import AWS global resources, such as policy
+import {
+  to = aws_iam_policy.kms_decrypt_policy
+  id = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:policy/lambda_kms_decrypt_policy"
+}
+
+import {
+  to = aws_iam_policy.ec2_describe_policy
+  id = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:policy/lambda_ec2_describe_policy"
+}
+
+import {
+  to = aws_iam_policy.ec2_run_policy
+  id = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:policy/lambda_ec2_run_policy"
+}
+
+import {
+  to = aws_iam_role.lambda_execution_role
+  id = "lambda_execution_role"
 }
 
 # Optional: Output the function name

@@ -2,16 +2,24 @@
 ## The key word 'resource' creates resources if not already imported
 ## Trying to create a resource with an existing name fails
 ## Order is not important, but in this case:
-## 1) Create VPC and VPC components - comment out Public_F if your region does not have an 'f' AZ
+## 1) Create VPC and VPC components - creates Public_1F if region AZ count > 5
 ## 2) Get the SSM parameter store value for undisclosed resource values
 ## 3) Create a Security Group
 ## 4) Create a key pair - commented as we'll use existing key
 ## 5) Instantiate one generic on-demand server (i.e. not the lambda created ephemeral spot runner)
 ## 6) As part of instantiation, assign the sg created earlier and add a public IP
+## 7) Create Github and EventBridge (not used here) actions
+
+#data "aws_vpcs" "all" {}
+#data "aws_vpc" "all_details" {
+#  for_each = data.aws_vpcs.all.ids
+#  id       = each.value
+#}
 
 # Create a VPC to launch our instances into, must be hard-coded
 # Change "test2" to whatever you changed vpc_name to in varialbes.tf
 resource "aws_vpc" "test2" {
+  count      = var.create_vpc ? 1 : 0
   cidr_block = "192.168.10.0/24"
   enable_dns_hostnames = "true"
   tags                    = {
@@ -19,27 +27,44 @@ resource "aws_vpc" "test2" {
      }
 }
 
-# Get the name of the vpc we're using for later interpolation
+data "aws_region" "current" {}
+
+data "aws_availability_zones" "azs" {}
+
 data "aws_vpc" "selected" {
+  count = var.create_vpc ? 0 : 1
   tags = {
     Name = var.vpc_name
   }
-   depends_on = [
-     aws_vpc.test2
-  ]
+}
+
+locals {
+#  vpc_id_by_name = {
+#    for vpc in data.aws_vpc.all_details :
+#    vpc.tags["Name"] => vpc.id
+#  }
+  target_vpc_name = "test2"
+#  vpc_id = lookup(local.vpc_id_by_name, local.target_vpc_name, null)
+  vpc_id = var.create_vpc ? aws_vpc.test2[0].id : data.aws_vpc.selected[0].id
+  region_name = data.aws_region.current.region
+  az_count = length(data.aws_availability_zones.azs.names)
+  az_a = "${local.region_name}a"
+  az_b = "${local.region_name}b"
+  az_c = "${local.region_name}c"
+  az_d = "${local.region_name}d"
+  az_f = "${local.region_name}f"
 }
 
 # Create an internet gateway to give our subnet access to the outside world
 resource "aws_internet_gateway" "gw1" {
-   vpc_id = data.aws_vpc.selected.id
-   
+   vpc_id = local.vpc_id
    tags   = {
        "Name" = "gw1"
    }
 }
 
 resource "aws_route_table" "public_route_table" {
-  vpc_id = data.aws_vpc.selected.id
+  vpc_id = local.vpc_id
   # Grant the VPC internet access on its main route table
   route {
     cidr_block = "0.0.0.0/0"
@@ -58,21 +83,11 @@ resource "aws_route_table" "public_route_table" {
 #   gateway_id             = "${aws_internet_gateway.gw1.id}"
 # }
 
-locals {
-  # The value of availability zone is derived from region plus letters a-f
-  # Useful for building out the VPC in regions. Region need to have atleast 
-  # 4 regions. o ther than us-east-1, use ap-northeast-2
-  az_a = "${var.aws_region}a"
-  az_b = "${var.aws_region}b"
-  az_c = "${var.aws_region}c"
-  az_d = "${var.aws_region}d"
-  az_f = "${var.aws_region}f"
-}
 
 # Create 5 subnets to launch our instances into
 # The first two are private, the remaining three public
 resource "aws_subnet" "Private_1A" {
-  vpc_id = data.aws_vpc.selected.id
+  vpc_id = local.vpc_id
   cidr_block              = "192.168.10.192/27"
   availability_zone = "${local.az_a}"
   map_public_ip_on_launch = false
@@ -82,7 +97,7 @@ resource "aws_subnet" "Private_1A" {
 }
 
 resource "aws_subnet" "Private_1D" {
-  vpc_id = data.aws_vpc.selected.id
+  vpc_id = local.vpc_id
   cidr_block              = "192.168.10.224/27"
   map_public_ip_on_launch = false
   availability_zone = "${local.az_d}"  
@@ -91,7 +106,7 @@ resource "aws_subnet" "Private_1D" {
      }
 }
 resource "aws_subnet" "Public_1A" {
-  vpc_id = data.aws_vpc.selected.id
+  vpc_id = local.vpc_id
   cidr_block              = "192.168.10.64/27"
   map_public_ip_on_launch = true
   availability_zone = "${local.az_a}"
@@ -100,7 +115,7 @@ resource "aws_subnet" "Public_1A" {
      }
 }
 resource "aws_subnet" "Public_1D" {
-  vpc_id = data.aws_vpc.selected.id
+  vpc_id = local.vpc_id
   cidr_block              = "192.168.10.128/27"
   map_public_ip_on_launch = true
   availability_zone = "${local.az_d}"
@@ -112,7 +127,8 @@ resource "aws_subnet" "Public_1D" {
 ## If your region does not have an 'F' AZ -  comment this out entirely 
 ## and update lamdba_handler.tf to use 'Public_1A' or 'Public_1D' for AZ 
 resource "aws_subnet" "Public_1F" {
-  vpc_id = data.aws_vpc.selected.id
+  count = local.az_count > 5 ? 1 : 0  # Do not create if region doesn't have > 5 AZ
+  vpc_id = local.vpc_id
   cidr_block              = "192.168.11.128/27"
   map_public_ip_on_launch = true
   availability_zone = "${local.az_f}"
@@ -127,12 +143,11 @@ data "aws_ssm_parameter" "vpc_test2_default_sg_cidrs" {
       name = "vpc_test2_default_sg_cidrs"
 }
 
-## Warning: this will alter a security group called 'default' if it exists
+## Warning: this this is the 'default' sg for our gh runners
 resource "aws_security_group" "default" {
-  name        = "default"
-  description = "default VPC security group"
-  vpc_id      = data.aws_vpc.selected.id
-
+  name        = "ghrunner"
+  description = "GitHub Runner VPC security group"
+  vpc_id      = local.vpc_id
   # Access from anywhere to port 23 and up - ssh blocked from everywhere by default
   # Comment this out if you do not need any open ports above port 22
   ingress {
@@ -157,6 +172,13 @@ resource "aws_security_group" "default" {
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
+  }
+  lifecycle {
+    ignore_changes = [
+    ## Ignore if already terraform import the SG but name is different
+      name,
+      description
+    ]
   }
 }
 
