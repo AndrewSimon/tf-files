@@ -63,7 +63,7 @@ EC2_CLIENT = boto3.client('ec2', region_name='${var.aws_region}')
 # not the one tf-files just created.  We default to Az 'f' in hopes of lower spot costs. 
 #
 AWS_REGION = '${var.aws_region}'
-AVAILABILITY_ZONE = '${var.aws_az}'
+AVAILABILITY_ZONE = '${local.az_d}'
 AMI_ID = '${var.ami_id}' # Technology Leadership's GHR AMI 
 INSTANCE_TYPE = '${var.instance_type}'
 SUBNET_ID = '${local.subnet_id}'
