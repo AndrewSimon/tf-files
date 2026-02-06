@@ -141,7 +141,13 @@ def lambda_handler(event, context):
             'statusCode': 401,
             'body': json.dumps('Invalid signature - if gotSecret matches SSM store value, SSM does not match what GH webhook sent.')
         }
-    """        
+    """  
+    headers = event.get('headers', {})
+    logger.info(f"Headers: {json.dumps(headers)}")
+    
+    # 2. Print body
+    body = event.get('body', '')
+    logger.info(f"Body: {body}")      
     """
     Checks for a running spot or on-demand instance with a specific tag and launches one if none exists.
     """
