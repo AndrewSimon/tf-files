@@ -109,21 +109,26 @@ nohup sudo -u gh-runner bash -c 'cd /home/gh-runner && ./run.sh' &
 def validate_signature(github_signature, payload_body, secret_token):
     """
     Validates the GitHub webhook signature.
-
+    """
     if not github_signature.startswith("sha256="):
         return False
     expected_signature = github_signature.split("=")[1]
+
+    # print("GHWHS:" + secret_token) 
     # Calculate the HMAC-SHA256 hash of the payload body
     h = hmac.new(secret_token.encode('utf-8'), payload_body, hashlib.sha256)    
     calculated_signature = h.hexdigest()
+    print("expected:" + expected_signature)
+    print("calculated:" + calculated_signature)    
     # Compare signatures using a timing-safe method
     return compare_digest(calculated_signature, expected_signature)
-    """
+
 
 def lambda_handler(event, context):
     """
         Validates the GH webhook secret via it's signature before anything else
-
+    """  
+    
     signature = event['headers'].get('x-hub-signature-256') or event['headers'].get('X-Hub-Signature-256')
     body = event['body']
     if event.get('isBase64Encoded'):
@@ -131,7 +136,10 @@ def lambda_handler(event, context):
         body = base64.b64decode(body)
     else:
         body = body.encode('utf-8')
-
+        headers = event.get('headers', {})
+        
+    logger.info(f"Headers: {json.dumps(headers)}")
+    
     if not signature or not validate_signature(signature, body, WEBHOOK_SECRET):
         return {
             'ssmSecret': WEBHOOK_SECRET,
@@ -141,7 +149,10 @@ def lambda_handler(event, context):
             'statusCode': 401,
             'body': json.dumps('Invalid signature - if gotSecret matches SSM store value, SSM does not match what GH webhook sent.')
         }
-    """        
+
+    headers = event.get('headers', {})
+    logger.info(f"Headers: {json.dumps(headers)}")
+         
     """
     Checks for a running spot or on-demand instance with a specific tag and launches one if none exists.
     """
@@ -243,7 +254,7 @@ def lambda_handler(event, context):
         response = EC2_CLIENT.run_instances(**params)
         instance_id = response['Instances'][0]['InstanceId']
         logger.info(f"Successfully launched new {MKT_OPT} instance: {instance_id}")
-        print(f"Instance {instance_id} is launched, cannot wait for status check ok or webhook will timeout!")
+        print(f"The SHA256 signatures match, instance {instance_id} is launched, 10 second GH webhook timeout is to short to wait for EC2 status check!")
         #waiter = EC2_CLIENT.get_waiter('instance_status_ok')
         #waiter.wait(InstanceIds=[instance_id])
         return {
