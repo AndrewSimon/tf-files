@@ -134,7 +134,10 @@ def lambda_handler(event, context):
 
     if not signature or not validate_signature(signature, body, WEBHOOK_SECRET):
         return {
-            'gotSecret': WEBHOOK_SECRET,
+            'ssmSecret': WEBHOOK_SECRET,
+            'gotSignature': signature,
+            'gotBody': body,
+            'gotSecret': secret,
             'statusCode': 401,
             'body': json.dumps('Invalid signature - if gotSecret matches SSM store value, SSM does not match what GH webhook sent.')
         }
