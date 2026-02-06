@@ -131,7 +131,10 @@ def lambda_handler(event, context):
         body = base64.b64decode(body)
     else:
         body = body.encode('utf-8')
-
+    
+    headers = event.get('headers', {})
+    logger.info(f"Headers: {json.dumps(headers)}")
+    
     if not signature or not validate_signature(signature, body, WEBHOOK_SECRET):
         return {
             'ssmSecret': WEBHOOK_SECRET,
