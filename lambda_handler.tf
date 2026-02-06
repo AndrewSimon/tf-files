@@ -125,6 +125,7 @@ def lambda_handler(event, context):
         Validates the GH webhook secret via it's signature before anything else
     """ 
     signature = event['headers'].get('x-hub-signature-256') or event['headers'].get('X-Hub-Signature-256')
+    print(signature)
     body = event['body']
     if event.get('isBase64Encoded'):
         import base64
