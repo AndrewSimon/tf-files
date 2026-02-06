@@ -109,16 +109,17 @@ nohup sudo -u gh-runner bash -c 'cd /home/gh-runner && ./run.sh' &
 def validate_signature(github_signature, payload_body, secret_token):
     """
     Validates the GitHub webhook signature.
-
+    """
     if not github_signature.startswith("sha256="):
         return False
     expected_signature = github_signature.split("=")[1]
     # Calculate the HMAC-SHA256 hash of the payload body
     h = hmac.new(secret_token.encode('utf-8'), payload_body, hashlib.sha256)    
     calculated_signature = h.hexdigest()
+    print(calculated_signature)
     # Compare signatures using a timing-safe method
-    return compare_digest(calculated_signature, expected_signature)
-    """
+    #  return compare_digest(calculated_signature, expected_signature)
+
 
 def lambda_handler(event, context):
     """
