@@ -114,7 +114,7 @@ def validate_signature(github_signature, payload_body, secret_token):
         return False
     expected_signature = github_signature.split("=")[1]
 
-    print("GHWHS:" + secret_token) 
+    # print("GHWHS:" + secret_token) 
     # Calculate the HMAC-SHA256 hash of the payload body
     h = hmac.new(secret_token.encode('utf-8'), payload_body, hashlib.sha256)    
     calculated_signature = h.hexdigest()
