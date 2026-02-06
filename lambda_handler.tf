@@ -27,6 +27,11 @@ data "aws_ssm_parameter" "gh_webhook_secret" {
       with_decryption = true
 }
 
+#Data source to retrieve the ARN of the AWS managed key for Lambda
+data "aws_kms_alias" "lambda_key_alias" {
+  name = "alias/aws/lambda"
+}
+
 # If creating a VPC, use the subnet resource, otherwise use data
 locals {
   subnet_id = var.create_vpc ? aws_subnet.Public_1D.id : data.aws_subnets.public[0].id
@@ -277,22 +282,22 @@ data "aws_iam_policy_document" "AWSLambdaTrustPolicy" {
 }
 
 # For access to KMS
-resource "aws_iam_policy" "kms_decrypt_policy" {
-  name        = "lambda_kms_decrypt_policy"
-  description = "A policy that allows the Lambda function to decrypt with the AWS managed key"
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Action = [
-          "kms:Decrypt",
-          "kms:DescribeKey" # Optional: useful for verification/logging
-        ]
-        Resource = "*"
-      }
+data "aws_iam_policy_document" "lambda_kms_access" {
+    statement {
+    sid    = "KMSAccessForLambda"
+    effect = "Allow"
+
+    # Actions required for typical KMS usage (e.g., encryption/decryption)
+    actions = [
+      "kms:Decrypt",
+      "kms:Encrypt",
+      "kms:GenerateDataKey",
+      "kms:DescribeKey",
     ]
-  })
+
+    # The Resource must use the actual Key ARN, not the alias ARN
+    resources = [data.aws_kms_alias.lambda_key_alias.target_key_arn]
+  }
 }
 
 # For access to EC2 DescribeInstances
@@ -366,6 +371,12 @@ resource "aws_iam_role_policy_attachment" "lambda_spot" {
   ]
 }
 
+resource "aws_iam_role_policy" "lambda_kms_policy_attachment" {
+  name = "lambda_kms_access_policy"
+  role = "lambda_execution_role"
+  policy = data.aws_iam_policy_document.lambda_kms_access.json
+}
+
 # Register the webhook in GitHub
 resource "github_repository_webhook" "tf_webhook" {
   repository = "tf-files"
@@ -412,12 +423,18 @@ resource "aws_lambda_function_url" "spot_lambda_url" {
     allow_methods = ["POST"]
     # HTTP headers that origins can include in requests
     #allow_headers = ["content-type", "authorization"]
-    allow_headers = []
+    allow_headers = ["x-hub-signature-256", "content-type"]
     # Whether to allow cookies or other credentials (optional, default is false)
     allow_credentials = false
     # Maximum amount of time - set this to match webhook timeout
     max_age = 10
     }
+}
+
+resource "aws_iam_policy" "kms_decrypt_policy" {
+  name        = "kms_decrypt_policy"
+  description = "Allows Lambda to Decrypt KMS"
+  policy      = data.aws_iam_policy_document.lambda_kms_access.json
 }
 
 ## Due to multi-region support, we need to import AWS global resources, such as policy
