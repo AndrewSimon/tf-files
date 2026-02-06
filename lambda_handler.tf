@@ -123,7 +123,7 @@ def validate_signature(github_signature, payload_body, secret_token):
 def lambda_handler(event, context):
     """
         Validates the GH webhook secret via it's signature before anything else
-
+    """ 
     signature = event['headers'].get('x-hub-signature-256') or event['headers'].get('X-Hub-Signature-256')
     body = event['body']
     if event.get('isBase64Encoded'):
@@ -134,7 +134,7 @@ def lambda_handler(event, context):
     
     headers = event.get('headers', {})
     logger.info(f"Headers: {json.dumps(headers)}")
-    
+     
     if not signature or not validate_signature(signature, body, WEBHOOK_SECRET):
         return {
             'ssmSecret': WEBHOOK_SECRET,
@@ -144,7 +144,7 @@ def lambda_handler(event, context):
             'statusCode': 401,
             'body': json.dumps('Invalid signature - if gotSecret matches SSM store value, SSM does not match what GH webhook sent.')
         }
-    """  
+ 
     headers = event.get('headers', {})
     logger.info(f"Headers: {json.dumps(headers)}")
     
