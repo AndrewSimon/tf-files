@@ -50,7 +50,7 @@ jobs:
       - name: Run Python shell commands to check os and node name, then sleep 5 minutes
         shell: python
         run:  |
-           import platform; import time; print(platform.platform()); print(platform.node()); time.sleep(300);
+           import platform; import time; print(platform.platform()); print(platform.node()); time.sleep(3);
 
 #  Lifecycle termination of node at job completion is an 'adminstrator' function controlled
 #  via ACTIONS_RUNNER_HOOK_JOB_COMPLETED and not available to workflows for 'security reasons' 
