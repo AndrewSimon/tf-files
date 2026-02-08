@@ -3,6 +3,9 @@ data "aws_vpc" "main" {
   tags = {
     Name = var.vpc_name
   }
+  depends_on = [
+    local.vpc_id
+  ]
 }
 
 data "aws_subnets" "public" {
@@ -13,6 +16,9 @@ data "aws_subnets" "public" {
   tags = {
     Name = var.aws_subnet_tag
   }
+  depends_on = [
+    local.vpc_id
+  ]
 }
 
 data "aws_ssm_parameter" "gh_webhook_secret" {
@@ -20,15 +26,24 @@ data "aws_ssm_parameter" "gh_webhook_secret" {
       with_decryption = true
 }
 
-locals {
-  # Convert the set of IDs to a list for easier indexing
-  public_subnet_ids_list = tolist(data.aws_subnets.public.ids)
+#Data source to retrieve the ARN of the AWS managed key for Lambda
+data "aws_kms_alias" "lambda_key_alias" {
+  name = "alias/aws/lambda"
 }
 
-output "spot_public_subnet_id" {
-  # Get the ID of the first subnet in the list
-  value = local.public_subnet_ids_list[0]
+# In hopes of lowest spot price, AZ is the last subnet in VPC, 
+# which is public by tf plan
+locals {
+  subnet_id = reverse(tolist(data.aws_subnets.public.ids))[0]
+  depends_on = [
+    local.vpc_id
+  ]
 }
+
+#output "spot_public_subnet_id" {
+#  # Get the ID of the first subnet in the list
+#  value = local.public_subnet_ids_list[0]
+#}
 
 resource "local_file" "lambda_handler" {
   filename = "lambda_handler.py"
@@ -53,10 +68,9 @@ EC2_CLIENT = boto3.client('ec2', region_name='${var.aws_region}')
 # not the one tf-files just created.  We default to Az 'f' in hopes of lower spot costs. 
 #
 AWS_REGION = '${var.aws_region}'
-AVAILABILITY_ZONE = '${var.aws_az}'
 AMI_ID = '${var.ami_id}' # Technology Leadership's GHR AMI 
 INSTANCE_TYPE = '${var.instance_type}'
-SUBNET_ID = '${local.public_subnet_ids_list[0]}'
+SUBNET_ID = '${local.subnet_id}'
 KEY_NAME = '${var.key_name}'
 TAG_KEY = 'runner'
 TAG_VALUE = 'true' # or any value, e.g., 'active' as we check for key
@@ -72,15 +86,31 @@ MAX = ${var.max_instances} #Integer
 MKT_OPT = "spot" if SPOT_MARKET else "on-demand"
 
 USERDATA = f"""#!/bin/bash
-#!/bin/bash
-#  runner hook to complete dynamically provisioned instance lifecycle
-echo "INSTANCE_ID=\$(curl -s http://169.254.169.254/latest/meta-data/instance-id)" > /home/gh-runner/bin/complete_lifecycle.sh
-echo "AWS_REGION=\$(curl -s http://169.254.169.254/latest/meta-data/placement/region)" >> /home/gh-runner/bin/complete_lifecycle.sh
-echo "aws ec2 terminate-instances --instance-ids \$INSTANCE_ID --region {AWS_REGION}" >> /home/gh-runner/bin/complete_lifecycle.sh
-chmod +x /home/gh-runner/bin/complete_lifecycle.sh
-# Comment out the below line to NOT terminate instance after running a job
-export ACTIONS_RUNNER_HOOK_JOB_COMPLETED=/home/gh-runner/bin/complete_lifecycle.sh
+# Runner hook to complete dynamically provisioned instance lifecycle.
+# Because there is a configurable maximum number of runners, first check
+# the queue: if more jobs than runners, do not terminate
+cat <<'EOF' > /home/gh-runner/bin/complete_lifecycle.sh
+export QUEUED=$(curl -s -L   -H "Accept: application/vnd.github+json"   -H "Authorization: Bearer {GH_PAT}" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/AndrewSimon/tf-files/actions/runs?sort=created&direction=desc&per_page=10"|grep "id" |grep " 2176"| sort -u| awk '{{print $2}}'|sed -e  's/,//g' |while read x
+do
+curl -s -L -H "Accept: application/vnd.github+json" -H "Authorization: Bearer {GH_PAT}" -H "X-GitHub-Api-Version: 2022-11-28" https://api.github.com/repos/AndrewSimon/tf-files/actions/runs/$x/jobs
+done | grep -e queued -e running |wc -l)
+export CNT=$(/home/gh-runner/bin/aws ec2 describe-instance-status --instance-ids $(/home/gh-runner/bin/aws ec2 describe-instances --filters "Name=tag:runner,Values=*" --query 'Reservations[].Instances[].InstanceId' --output text) --filters Name=instance-state-name,Values=running,pending --query "length(InstanceStatuses[?InstanceStatus.Status!='ok' || SystemStatus.Status!='ok'])")
 
+if (( $CNT >= $QUEUED )); then
+    echo "Server count is greater than or equal to the number of jobs on the queue, shutting down now"
+    TOKEN=$(curl -X PUT 'http://169.254.169.254/latest/api/token' -H 'X-aws-ec2-metadata-token-ttl-seconds: 21600')
+    INSTANCE_ID=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" 169.254.169.254/latest/meta-data/instance-id)
+    AWS_REGION=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" 169.254.169.254/latest/meta-data/placement/region)
+    /home/gh-runner/bin/aws ec2 terminate-instances --instance-ids $INSTANCE_ID --region $AWS_REGION
+else
+  echo "Not enough runners for queue.  Re-configuring and restarting runner listener"
+  /var/lib/cloud/instance/user-data.txt
+fi
+EOF
+# Comment out the below line to NOT terminate instance after running a job
+echo ACTIONS_RUNNER_HOOK_JOB_COMPLETED=/home/gh-runner/bin/complete_lifecycle.sh >> /etc/environment
+chmod +x /home/gh-runner/bin/complete_lifecycle.sh
+chmod +x /var/lib/cloud/instance/user-data.txt
 # Configure runner and connect to server
 export DEFAULT_MAX=1
 export RUNNER_TOKEN=$(curl -s -L -X POST -H "Accept: application/vnd.github+json" -H "Authorization: Bearer {GH_PAT}" -H "X-GitHub-Api-Version: 2022-11-28" https://api.github.com/repos/{REPO_NAME}/actions/runners/registration-token| grep token|awk -F\\" '{{print $4}}')
@@ -96,9 +126,13 @@ def validate_signature(github_signature, payload_body, secret_token):
     if not github_signature.startswith("sha256="):
         return False
     expected_signature = github_signature.split("=")[1]
+
+    # print("GHWHS:" + secret_token) 
     # Calculate the HMAC-SHA256 hash of the payload body
     h = hmac.new(secret_token.encode('utf-8'), payload_body, hashlib.sha256)    
     calculated_signature = h.hexdigest()
+    print("expected:" + expected_signature)
+    print("calculated:" + calculated_signature)    
     # Compare signatures using a timing-safe method
     return compare_digest(calculated_signature, expected_signature)
 
@@ -106,7 +140,8 @@ def validate_signature(github_signature, payload_body, secret_token):
 def lambda_handler(event, context):
     """
         Validates the GH webhook secret via it's signature before anything else
-    """
+    """  
+    
     signature = event['headers'].get('x-hub-signature-256') or event['headers'].get('X-Hub-Signature-256')
     body = event['body']
     if event.get('isBase64Encoded'):
@@ -114,14 +149,23 @@ def lambda_handler(event, context):
         body = base64.b64decode(body)
     else:
         body = body.encode('utf-8')
-
+        headers = event.get('headers', {})
+        
+    logger.info(f"Headers: {json.dumps(headers)}")
+    
     if not signature or not validate_signature(signature, body, WEBHOOK_SECRET):
         return {
-            'gotSecret': WEBHOOK_SECRET,
+            'ssmSecret': WEBHOOK_SECRET,
+            'gotSignature': signature,
+            'gotBody': body,
+            ']gotSecret': secret,
             'statusCode': 401,
             'body': json.dumps('Invalid signature - if gotSecret matches SSM store value, SSM does not match what GH webhook sent.')
         }
-        
+
+    headers = event.get('headers', {})
+    logger.info(f"Headers: {json.dumps(headers)}")
+         
     """
     Checks for a running spot or on-demand instance with a specific tag and launches one if none exists.
     """
@@ -160,7 +204,7 @@ def lambda_handler(event, context):
     # Update USERDATA tags with marketplace option, max count and current existing count
     USERDATA = USERDATA.replace("$DEFAULT_MAX", str(instance_count))
     # If no matching instance is running, launch a new one-time spot instance
-    logger.info(f"{instance_count} instances found. Launching a new '{INSTANCE_TYPE}' '{MKT_OPT}' instance in '{AVAILABILITY_ZONE}'...")
+    logger.info(f"{instance_count} instances found. Launching a new '{INSTANCE_TYPE}' '{MKT_OPT}' instance in '{SUBNET_ID}'...")
 
     params = {
       'ImageId': AMI_ID,
@@ -181,9 +225,6 @@ def lambda_handler(event, context):
       ],
       'IamInstanceProfile': {
         'Name': PROFILE_NAME # Specify the profile name here
-      },
-      'Placement': {
-          'AvailabilityZone': AVAILABILITY_ZONE
       },
       'UserData': USERDATA,
       'TagSpecifications' :[
@@ -223,12 +264,12 @@ def lambda_handler(event, context):
         response = EC2_CLIENT.run_instances(**params)
         instance_id = response['Instances'][0]['InstanceId']
         logger.info(f"Successfully launched new {MKT_OPT} instance: {instance_id}")
-        print(f"Instance {instance_id} is launched, cannot wait for status check ok or webhook will timeout!")
+        print(f"The SHA256 signatures match, instance {instance_id} is launched, 10 second GH webhook timeout is to short to wait for EC2 status check!")
         #waiter = EC2_CLIENT.get_waiter('instance_status_ok')
         #waiter.wait(InstanceIds=[instance_id])
         return {
             'statusCode': 200,
-            'body': f"{MKT_OPT} instance {instance_id} is now launched!"
+            'body': f"Found {instance_count} instances running while {MAX} allowed, {MKT_OPT} instance {instance_id} is now launched!"
         }
 
     except Exception as e:
@@ -265,22 +306,22 @@ data "aws_iam_policy_document" "AWSLambdaTrustPolicy" {
 }
 
 # For access to KMS
-resource "aws_iam_policy" "kms_decrypt_policy" {
-  name        = "lambda_kms_decrypt_policy"
-  description = "A policy that allows the Lambda function to decrypt with the AWS managed key"
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Action = [
-          "kms:Decrypt",
-          "kms:DescribeKey" # Optional: useful for verification/logging
-        ]
-        Resource = "*"
-      }
+data "aws_iam_policy_document" "lambda_kms_access" {
+    statement {
+    sid    = "KMSAccessForLambda"
+    effect = "Allow"
+
+    # Actions required for typical KMS usage (e.g., encryption/decryption)
+    actions = [
+      "kms:Decrypt",
+      "kms:Encrypt",
+      "kms:GenerateDataKey",
+      "kms:DescribeKey",
     ]
-  })
+
+    # The Resource must use the actual Key ARN, not the alias ARN
+    resources = [data.aws_kms_alias.lambda_key_alias.target_key_arn]
+  }
 }
 
 # For access to EC2 DescribeInstances
@@ -354,6 +395,12 @@ resource "aws_iam_role_policy_attachment" "lambda_spot" {
   ]
 }
 
+resource "aws_iam_role_policy" "lambda_kms_policy_attachment" {
+  name = "lambda_kms_access_policy"
+  role = "lambda_execution_role"
+  policy = data.aws_iam_policy_document.lambda_kms_access.json
+}
+
 # Register the webhook in GitHub
 resource "github_repository_webhook" "tf_webhook" {
   repository = "tf-files"
@@ -392,6 +439,7 @@ resource "aws_lambda_function_url" "spot_lambda_url" {
   function_name      = aws_lambda_function.spot_runner.function_name
   invoke_mode        = "RESPONSE_STREAM"
   authorization_type = "NONE" # Restrict access with 'AWS_IAM'
+  region = "${local.region_name}"
   cors {
     # Origins that can access the function URL
     allow_origins = ["https://api.github.com", "https://github.com"]
@@ -399,12 +447,39 @@ resource "aws_lambda_function_url" "spot_lambda_url" {
     allow_methods = ["POST"]
     # HTTP headers that origins can include in requests
     #allow_headers = ["content-type", "authorization"]
-    allow_headers = []
+    allow_headers = ["x-hub-signature-256", "content-type"]
     # Whether to allow cookies or other credentials (optional, default is false)
     allow_credentials = false
     # Maximum amount of time - set this to match webhook timeout
     max_age = 10
     }
+}
+
+resource "aws_iam_policy" "kms_decrypt_policy" {
+  name        = "kms_decrypt_policy"
+  description = "Allows Lambda to Decrypt KMS"
+  policy      = data.aws_iam_policy_document.lambda_kms_access.json
+}
+
+## Due to multi-region support, we need to import AWS global resources, such as policy
+import {
+  to = aws_iam_policy.kms_decrypt_policy
+  id = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:policy/lambda_kms_decrypt_policy"
+}
+
+import {
+  to = aws_iam_policy.ec2_describe_policy
+  id = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:policy/lambda_ec2_describe_policy"
+}
+
+import {
+  to = aws_iam_policy.ec2_run_policy
+  id = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:policy/lambda_ec2_run_policy"
+}
+
+import {
+  to = aws_iam_role.lambda_execution_role
+  id = "lambda_execution_role"
 }
 
 # Optional: Output the function name

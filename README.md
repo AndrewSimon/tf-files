@@ -15,12 +15,10 @@ This is a terraform plan that:
 11. Creates an AWS lambda function and lambda url for the webhook to contact
 12. Lambda uses boto3 to instantiate a spot instance to create a github self-hosted runner
 13. Contains a github action to queue a job that runs when the runner is available
-14. The github action runs a simple aws api via boto3 to show the runner works
+14. The github action installs dependencies, prints runner's OS (currently: Linux-5.15.0-101.103.2.1.el9uek.x86_64-x86_64-with-glibc2.34) to show it is your runner and it works, and sleeps to help create a queue for testing multiple jobs
 15. Creates a lot of IAM policy documents and roles for steps 1-14 above to work
-16. Runs a github actions job that prints the self-hosted runners OS, currently: Linux-5.15.0-101.103.2.1.el9uek.x86_64-x86_64-with-glibc2.34
 
-The Github Actions workflow demonstrates how to complete the Dynamic Runner lifecycle:
-
+The Github Actions workflow describes the dependencies and how to modify it to disable the Dynamic Runner life-cycle for that job/repo, until reverted.  This is intentional and does return some control of the life-cycle from the 'administrator' back to the 'developer'.  You will have to add the dependencies via user-data and/or a new AMI image to block the developers' ability to disable the life-cycle.
 
 
 ## Prerequisites
@@ -48,11 +46,11 @@ https://www.terraform.io/intro/getting-started/install.html
 ```
   
 ## Create an s3 bucket for the back-end (not coded here)
-`aws s3 mb s3://<name-of-the-bucket-to-store-state-files>`  --> without angle brackets and with a unique name
-<P>The name of the bucket must be the same as the one you configure in config.tf
+`aws s3 mb s3://<name-of-the-bucket-to-store-state-files> --region <your-aws-region>`  --> without angle brackets and with a unique name and AWS region.  Repeat for each region you want to utilize.
+<P>The name of the bucket must be the same as the one you configure in config.tf and/or initialized (see below).
 
 ## Create an SSM parameter (not coded here)
-SSM parameter store can be used for sensitive data like <i>F/W (SG) IP allow ranges</i> that should not go into a public repository. Using Terraform to create the store would bump secrets management to a less desirable method (like local environment variables or a tfvars file) and make retrieval of those values from SSM parameter store optional.
+SSM parameter store can be used for sensitive data like <i>F/W (SG) IP allow ranges</i> that should not go into a public repository. Using Terraform to create the store would bump secrets management to a less desirable method (like local environment variables or a tfvars file) and make retrieval of those values from SSM parameter store optional. Repeat 1 -6 below in each AWS region you wish to utilize.
 
 1. Enter AWS Systems Manager
 2. Click Parameter Store
@@ -75,15 +73,15 @@ cd tf-files
 
 variables.tf:  
 1. Modify key_name to an SSH key pair name you already created in AWS and it's public key file path you saved locally
-2. Update the ami_id default value to an existing AMI in your account - uses a TLC AMI
-
-config.tf: Change the name of the bucket used for s3 backend and update your region, if not <b>us-east-1</b>.
+2. Update the ami_id default value to an existing AMI in your account - uses a TLC AMI specified in variables.tf
+3. config.tf: Uncomment and change the name of the bucket used for s3 backend and uncomment your region, variables are not accepted here - OR -
+4. We have config.tf commented backend values to more easily support multiple regions as terraform init DOES support variables. Just run *export TF_CLI_ARGS_init="-backend-config=bucket=$BUCKET_NAME -backend-config=region=$AWS_REGION"* where you have already exported $BUCKET_NAME (the name of the s3 backend bucket) and AWS_REGION, then run terraform steps below
 
 main.tf: Nothing needs to change. Optionally, change 'test2' to another VPC name, replace all occurrences of the string "test2" with a VPC name you like
 
 ### Run command-line Terraform commands to test, execute and destroy
 1. cd tf-files
-2. First time only, run: terraform init
+2. First time only, run: terraform init (or terraform init --reconfigure)
 3. To test, run: terraform plan
 4. To execute with automatic 'yes', run: terraform apply -auto-approve
 5. To override AZ placement of runner to us-east-1a (for example), run: terraform apply -auto-approve -var="aws_az=us-east-1a" -var="aws_subnet_tag=Public_1A"
@@ -100,7 +98,8 @@ For webhook errors and return codes:
 1. We couldn't deliver this payload: this usually means there is no capacity for your spot instances. But, wait a minute or two sometimes as the hook may have worked but AWS exceeded Github 10 second wait time to respond
 2. Timeout: this usually means there is no capacity for your spot instances. But, wait a minute or two as sometimes the hook worked but AWS exceeded Github 10 second wait time to respond
 3. Return code 200:  This means the webhook succeeded. Verify in the details that an instance was launched, otherwise it will give a count of already running instances. To increase the number of allowed runners to 10, for example, override with -var="max_instances=10"
-4. Return code 401 - Invalid Signature: The webhook-secret does not match between the repository commit-hook and SSM.  Fix it in either SSM or the GH Webhook for that repo.  As a forged SSL from outside github.com will have been completely blocked from connecting to the lambda url, thus could not have sent lambda a webhook secret, it *must* be someone inside gitub.com domain who stumbled upon your Amazon lambda url, even though there is a 1 in 4e+54 chance of that happening (the chance of picking the right atom in Avagrado's number is *only* 1 in 6e+23), and sent you the wrong secret or is trying to 'hack' you.  It is much more likely someone who has access to the webhook's repo where you are seeing this has updated the webhook secret without telling you.  Alternately, they have access to SSM and changed it there without telling you.
+4. Return code 502: run 'terraform taint aws_lambda_function.spot_runner', then run terraform apply
+5. Return code 401 - Invalid Signature: The webhook-secret does not match between the repository commit-hook and SSM.  Fix it in either SSM or the GH Webhook for that repo.  As a forged SSL from outside github.com will have been completely blocked from connecting to the lambda url, thus could not have sent lambda a webhook secret, it *must* be someone inside gitub.com domain who stumbled upon your Amazon lambda url, even though there is a 1 in 1.5e+54 chance of that happening (the chance of picking the right atom in Avagrado's number is *only* 1 in 6e+23), and sent you the wrong secret or worse, is trying to 'hack' you.  It is *much* more likely, though, that someone who has access to the webhook's repo where you are seeing this has updated the webhook secret without telling you.  Alternately, they have access to SSM and changed it there without telling you.  The rarity of hitting your lambda url is why the web secret is completely unnecessary; but for 'best practices', I waste your valuable (more so than a web secret) electrons verifying the signature for you, anyway. 
 
 ## Maintainers
 

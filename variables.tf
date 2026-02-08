@@ -18,7 +18,6 @@ variable "key_name" {
   description = "AWS Work"
   default = "AWS Work"
 }
-
 #### Variables below are for boto3 run_instances, not terraform's aws_instance resource 
 # Use any 'f' AZ below, but if your region does not have an 'f' AZ
 # update main.tf and lambda.tf, accordingly
@@ -38,9 +37,9 @@ variable "instance_type" {
 }
 
 variable "ami_id" {
-  description = "Subscribe to this AMI ID for the spot instance before using tf-files."
+  description = "Subscribe to https://aws.amazon.com/marketplace/pp/prodview-zsmcixdrlp2ti for the correct AMI ID."
   type        = string
-  default = "ami-00105ec16deadf5b2"
+  default = "ami-00105ec16deadf5b2" # This may not be the Marketplace AMI ID in our region
 }
 
 variable "spot_market" {
@@ -56,15 +55,15 @@ variable "volume_size" {
 }
 
 variable "instance_profile" {
-  description = "Use the ssm_prodile we built in ssm.tf or override with your own"
+  description = "Use the ssm_profile we built in ssm.tf or override with your own"
   type        = string
   default     = "spot_instance_profile"
 }
 
 variable "max_instances" {
-description = "Maximum number of running instances allowed by SpotRunner lambda_handler"
+description = "Maximum number of running instances allowed by lambda_handler. Keep high if terminating instances at completion"
   type        = string
-  default     = "1"
+  default     = "10"
 }
 
 variable "repo_name" {
