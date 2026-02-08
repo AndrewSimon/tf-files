@@ -18,26 +18,6 @@ variable "key_name" {
   description = "AWS Work"
   default = "AWS Work"
 }
-
-## The two variables below enable toggle between standing up a new VPC or using existing VPC
-## It defaults to stand-up a new VPC as it assumes you are running this the first time
-## If you are importing a VPC or keeping the one you previously created, you must set this 
-## to false AND specify the default vpc-id in the variable vpc_id below 
-## or remember to do the command-line overrides -var="create_vpc=false" -var="vpc_id=vpc-123456780"
-
-variable "create_vpc" {
-  description = "Set to create a new one, otherwise set to false."
-  type        = bool
-  default     = true
-}
-
-# If/when the VPC is created and you are not destroying it, add the VPC-ID below
-variable "vpc_id" {
-  description = "The ID of an existing VPC (if use_existing_vpc is true)."
-  type        = string
-  default     = ""
-}
-
 #### Variables below are for boto3 run_instances, not terraform's aws_instance resource 
 # Use any 'f' AZ below, but if your region does not have an 'f' AZ
 # update main.tf and lambda.tf, accordingly

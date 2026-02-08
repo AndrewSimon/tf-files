@@ -9,7 +9,6 @@ data "aws_vpc" "main" {
 }
 
 data "aws_subnets" "public" {
-  count = var.create_vpc ? 0 : 1
   filter {
     name   = "vpc-id"
     values = [data.aws_vpc.main.id] 
@@ -32,9 +31,10 @@ data "aws_kms_alias" "lambda_key_alias" {
   name = "alias/aws/lambda"
 }
 
-# If creating a VPC, use the subnet resource, otherwise use data
+# In hopes of lowest spot price, AZ is the last subnet in VPC, 
+# which is public by tf plan
 locals {
-  subnet_id = var.create_vpc ? aws_subnet.Public_1D.id : data.aws_subnets.public[0].id
+  subnet_id = reverse(tolist(data.aws_subnets.public.ids))[0]
   depends_on = [
     local.vpc_id
   ]
@@ -68,7 +68,6 @@ EC2_CLIENT = boto3.client('ec2', region_name='${var.aws_region}')
 # not the one tf-files just created.  We default to Az 'f' in hopes of lower spot costs. 
 #
 AWS_REGION = '${var.aws_region}'
-AVAILABILITY_ZONE = '${local.az_d}'
 AMI_ID = '${var.ami_id}' # Technology Leadership's GHR AMI 
 INSTANCE_TYPE = '${var.instance_type}'
 SUBNET_ID = '${local.subnet_id}'
@@ -87,13 +86,27 @@ MAX = ${var.max_instances} #Integer
 MKT_OPT = "spot" if SPOT_MARKET else "on-demand"
 
 USERDATA = f"""#!/bin/bash
-#  runner hook to complete dynamically provisioned instance lifecycle
+# Runner hook to complete dynamically provisioned instance lifecycle.
+# Because there is a configurable maximum number of runners, first check
+# the queue: if more jobs than runners, do not terminate
+cat <<'EOF' > /home/gh-runner/bin/complete_lifecycle.sh
+QUEUED=$(curl -s -L   -H "Accept: application/vnd.github+json"   -H "Authorization: Bearer {GH_PAT}" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/AndrewSimon/tf-files/actions/runs?sort=created&direction=desc&per_page=10"|grep "id" |grep " 2176"| sort -u| awk '{print $2}'|sed -e  's/,//g' |while read x
+do
+curl -s -L -H "Accept: application/vnd.github+json" -H "Authorization: Bearer {GH_PAT}" -H "X-GitHub-Api-Version: 2022-11-28" https://api.github.com/repos/AndrewSimon/tf-files/actions/runs/$x/jobs
+done | grep -e queued -e running |wc -l)
+CNT=$(aws ec2 describe-instance-status --instance-ids $(aws ec2 describe-instances --filters "Name=tag:runner,Values=*" --query 'Reservations[].Instances[].InstanceId' --output text) --filters Name=instance-state-name,Values=running,pending --query "length(InstanceStatuses[?InstanceStatus.Status!='ok' || SystemStatus.Status!='ok'])")
 
-#### DEFAULT RUN_INSTANCES IS TOKENS REQUIRED MEANING USER-DATA MUST USE IDMSv2!
-echo "TOKEN=\$(curl -X PUT 'http://169.254.169.254/latest/api/token' -H 'X-aws-ec2-metadata-token-ttl-seconds: 21600')"  > /home/gh-runner/bin/complete_lifecycle.sh
-echo "INSTANCE_ID=\$(curl -H \\"X-aws-ec2-metadata-token: \$TOKEN\\" 169.254.169.254/latest/meta-data/instance-id)" >> /home/gh-runner/bin/complete_lifecycle.sh
-echo "AWS_REGION=\$(curl -H \\"X-aws-ec2-metadata-token: \$TOKEN\\" 169.254.169.254/latest/meta-data/placement/region)" >> /home/gh-runner/bin/complete_lifecycle.sh
-echo "/home/gh-runner/bin/aws ec2 terminate-instances --instance-ids \$INSTANCE_ID --region \$AWS_REGION" >> /home/gh-runner/bin/complete_lifecycle.sh
+if (( CNT >= QUEUED )); then
+    echo "Server count is greater than or equal to the number of jobs on the queue, shutting down now"
+    TOKEN=$(curl -X PUT 'http://169.254.169.254/latest/api/token' -H 'X-aws-ec2-metadata-token-ttl-seconds: 21600')
+    INSTANCE_ID=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" 169.254.169.254/latest/meta-data/instance-id)
+    AWS_REGION=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" 169.254.169.254/latest/meta-data/placement/region)
+    /home/gh-runner/bin/aws ec2 terminate-instances --instance-ids $INSTANCE_ID --region $AWS_REGION
+else
+  echo "Not enough runners for queue.  Re-configuring and restarting runner listener"
+  /usr/bin/bash /var/lib/cloud/instance/user-data.txt
+fi
+EOF
 chmod +x /home/gh-runner/bin/complete_lifecycle.sh
 # Comment out the below line to NOT terminate instance after running a job
 echo ACTIONS_RUNNER_HOOK_JOB_COMPLETED=/home/gh-runner/bin/complete_lifecycle.sh >> /etc/environment
@@ -212,9 +225,6 @@ def lambda_handler(event, context):
       ],
       'IamInstanceProfile': {
         'Name': PROFILE_NAME # Specify the profile name here
-      },
-      'Placement': {
-          'AvailabilityZone': AVAILABILITY_ZONE
       },
       'UserData': USERDATA,
       'TagSpecifications' :[

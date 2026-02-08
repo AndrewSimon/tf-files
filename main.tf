@@ -19,7 +19,6 @@
 # Create a VPC to launch our instances into, must be hard-coded
 # Change "test2" to whatever you changed vpc_name to in varialbes.tf
 resource "aws_vpc" "test2" {
-  count      = var.create_vpc ? 1 : 0
   cidr_block = "192.168.10.0/24"
   enable_dns_hostnames = "true"
   tags                    = {
@@ -32,7 +31,6 @@ data "aws_region" "current" {}
 data "aws_availability_zones" "azs" {}
 
 data "aws_vpc" "selected" {
-  count = var.create_vpc ? 0 : 1
   tags = {
     Name = var.vpc_name
   }
@@ -44,8 +42,7 @@ locals {
 #    vpc.tags["Name"] => vpc.id
 #  }
   target_vpc_name = "test2"
-#  vpc_id = lookup(local.vpc_id_by_name, local.target_vpc_name, null)
-  vpc_id = var.create_vpc ? aws_vpc.test2[0].id : data.aws_vpc.selected[0].id
+  vpc_id = aws_vpc.test2.id
   region_name = data.aws_region.current.region
   az_count = length(data.aws_availability_zones.azs.names)
   az_a = "${local.region_name}a"
@@ -239,4 +236,7 @@ output "token_expiration" {
 # Output the ARN of the created event bus
 output "event_bus_arn" {
   value = aws_cloudwatch_event_bus.custom_bus.arn
+}
+output "spot_az" {
+  value = reverse(data.aws_availability_zones.azs.names)[0]
 }
