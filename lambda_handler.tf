@@ -90,7 +90,7 @@ USERDATA = f"""#!/bin/bash
 # Because there is a configurable maximum number of runners, first check
 # the queue: if more jobs than runners, do not terminate
 cat <<'EOF' > /home/gh-runner/bin/complete_lifecycle.sh
-export QUEUED=$(curl -s -L   -H "Accept: application/vnd.github+json"   -H "Authorization: Bearer {{GH_PAT}}" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/AndrewSimon/tf-files/actions/runs?sort=created&direction=desc&per_page=10"|grep "id" |grep " 2176"| sort -u| awk '{print $2}'|sed -e  's/,//g' |while read x
+export QUEUED=$(curl -s -L   -H "Accept: application/vnd.github+json"   -H "Authorization: Bearer {{GH_PAT}}" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/AndrewSimon/tf-files/actions/runs?sort=created&direction=desc&per_page=10"|grep "id" |grep " 2176"| sort -u| awk '{{print $2}}'|sed -e  's/,//g' |while read x
 do
 curl -s -L -H "Accept: application/vnd.github+json" -H "Authorization: Bearer {{GH_PAT}}" -H "X-GitHub-Api-Version: 2022-11-28" https://api.github.com/repos/AndrewSimon/tf-files/actions/runs/$x/jobs
 done | grep -e queued -e running |wc -l)
@@ -204,7 +204,7 @@ def lambda_handler(event, context):
     # Update USERDATA tags with marketplace option, max count and current existing count
     USERDATA = USERDATA.replace("$DEFAULT_MAX", str(instance_count))
     # If no matching instance is running, launch a new one-time spot instance
-    logger.info(f"{instance_count} instances found. Launching a new '{INSTANCE_TYPE}' '{MKT_OPT}' instance in '{AVAILABILITY_ZONE}'...")
+    logger.info(f"{instance_count} instances found. Launching a new '{INSTANCE_TYPE}' '{MKT_OPT}' instance in '{SUBNET_ID}'...")
 
     params = {
       'ImageId': AMI_ID,
