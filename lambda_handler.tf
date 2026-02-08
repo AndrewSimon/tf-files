@@ -94,7 +94,7 @@ export QUEUED=$(curl -s -L   -H "Accept: application/vnd.github+json"   -H "Auth
 do
 curl -s -L -H "Accept: application/vnd.github+json" -H "Authorization: Bearer {GH_PAT}" -H "X-GitHub-Api-Version: 2022-11-28" https://api.github.com/repos/AndrewSimon/tf-files/actions/runs/$x/jobs
 done | grep -e queued -e running |wc -l)
-export CNT=$(/home/gh-runner/bin/aws ec2 describe-instance-status --instance-ids $(aws ec2 describe-instances --filters "Name=tag:runner,Values=*" --query 'Reservations[].Instances[].InstanceId' --output text) --filters Name=instance-state-name,Values=running,pending --query "length(InstanceStatuses[?InstanceStatus.Status!='ok' || SystemStatus.Status!='ok'])")
+export CNT=$(/home/gh-runner/bin/aws ec2 describe-instance-status --instance-ids $(/home/gh-runner/bin/aws ec2 describe-instances --filters "Name=tag:runner,Values=*" --query 'Reservations[].Instances[].InstanceId' --output text) --filters Name=instance-state-name,Values=running,pending --query "length(InstanceStatuses[?InstanceStatus.Status!='ok' || SystemStatus.Status!='ok'])")
 
 if (( $CNT >= $QUEUED )); then
     echo "Server count is greater than or equal to the number of jobs on the queue, shutting down now"
@@ -107,11 +107,10 @@ else
   /var/lib/cloud/instance/user-data.txt
 fi
 EOF
-chmod +x /home/gh-runner/bin/complete_lifecycle.sh
-chmod +x /var/lib/cloud/instance/user-data.txt
 # Comment out the below line to NOT terminate instance after running a job
 echo ACTIONS_RUNNER_HOOK_JOB_COMPLETED=/home/gh-runner/bin/complete_lifecycle.sh >> /etc/environment
-
+chmod +x /home/gh-runner/bin/complete_lifecycle.sh
+chmod +x /var/lib/cloud/instance/user-data.txt
 # Configure runner and connect to server
 export DEFAULT_MAX=1
 export RUNNER_TOKEN=$(curl -s -L -X POST -H "Accept: application/vnd.github+json" -H "Authorization: Bearer {GH_PAT}" -H "X-GitHub-Api-Version: 2022-11-28" https://api.github.com/repos/{REPO_NAME}/actions/runners/registration-token| grep token|awk -F\\" '{{print $4}}')
