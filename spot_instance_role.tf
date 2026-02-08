@@ -72,6 +72,7 @@ resource "aws_iam_policy" "spot_policy" {
           "ec2:DescribeLaunchTemplates",
           "ec2:DescribeImages",
           "ec2:TerminateInstances",
+          "ec2:DescribeInstanceStatus",
           "ec2:DescribeSubnets"       
         ],
         Resource = "*"
