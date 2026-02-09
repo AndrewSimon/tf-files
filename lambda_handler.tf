@@ -70,7 +70,7 @@ EC2_CLIENT = boto3.client('ec2', region_name='${var.aws_region}')
 AWS_REGION = '${var.aws_region}'
 AMI_ID = '${var.ami_id}' # Technology Leadership's GHR AMI 
 INSTANCE_TYPE = '${var.instance_type}'
-SUBNET_ID = '${local.subnet_id}'
+SUBNET_ID = '${var.aws_az}'
 KEY_NAME = '${var.key_name}'
 TAG_KEY = 'runner'
 TAG_VALUE = 'true' # or any value, e.g., 'active' as we check for key
