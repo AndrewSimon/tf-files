@@ -19,13 +19,7 @@ variable "key_name" {
   default = "AWS Work"
 }
 #### Variables below are for boto3 run_instances, not terraform's aws_instance resource 
-# Use any 'f' AZ below, but if your region does not have an 'f' AZ
-# update main.tf and lambda.tf, accordingly
-variable "aws_az" {
-  description = "AWS Availability Zone"
-  default     = "us-east-1f"
-}
-
+# If your region does not have an 'F' AZ use A or D
 variable "aws_subnet_tag" {
   description = "AWS Availability Zone"
   default     = "Public_1F"

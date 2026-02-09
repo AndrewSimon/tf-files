@@ -179,7 +179,7 @@ resource "aws_security_group" "default" {
   }
 }
 
-# We instantiate 1 on-demand in AZ Public 1D.  Spot AZ is defined in variables.tf ('aws_az')
+# We instantiate 1 on-demand in AZ Public 1D.
 resource "aws_instance" "tf-instance" {
   ami   = "${var.ami_id}"
   associate_public_ip_address = true
@@ -237,6 +237,6 @@ output "token_expiration" {
 output "event_bus_arn" {
   value = aws_cloudwatch_event_bus.custom_bus.arn
 }
-output "spot_az" {
-  value = reverse(data.aws_availability_zones.azs.names)[0]
-}
+#output "spot_az" {
+#  value = reverse(data.aws_availability_zones.azs.names)[0]
+#}
