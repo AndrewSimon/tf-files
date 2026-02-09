@@ -90,7 +90,7 @@ USERDATA = f"""#!/bin/bash
 # Because there is a configurable maximum number of runners, first check
 # the queue: if more jobs than runners, do not terminate
 cat <<'EOF' > /home/gh-runner/bin/complete_lifecycle.sh
-export QUEUED=$(curl -s -L   -H "Accept: application/vnd.github+json"   -H "Authorization: Bearer {GH_PAT}" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/AndrewSimon/tf-files/actions/runs?sort=created&direction=desc&per_page=30"|grep "id" |grep  -E '"id": [0-9]{{10}},'| sort -u| awk '{{print $2}}'|sed -e  's/,//g' |while read x
+export QUEUED=$(curl -s -L   -H "Accept: application/vnd.github+json"   -H "Authorization: Bearer {GH_PAT}" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/AndrewSimon/tf-files/actions/runs?sort=created&direction=desc&per_page=25"|grep  -E '"id": [0-9]{{10}}'| sort -r -u| awk '{{print $2}}'|sed -e  's/,//g' |while read x
 do
 curl -s -L -H "Accept: application/vnd.github+json" -H "Authorization: Bearer {GH_PAT}" -H "X-GitHub-Api-Version: 2022-11-28" https://api.github.com/repos/AndrewSimon/tf-files/actions/runs/$x/jobs
 done | grep -e queued -e running |wc -l)
@@ -104,7 +104,7 @@ if (( $CNT >= $QUEUED )); then
     /home/gh-runner/bin/aws ec2 terminate-instances --instance-ids $INSTANCE_ID --region $AWS_REGION
     exit 0
 else
-  echo "Not enough runners for queue. Not ending"
+  echo "Not enough runners ($CNT) for jobs queued ($QUEUED). Not ending life-cycle, will let next job do it."
 fi
 EOF
 # Comment out the below line to NOT terminate instance after running a job
