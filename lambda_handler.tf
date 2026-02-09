@@ -102,9 +102,9 @@ if (( $CNT >= $QUEUED )); then
     INSTANCE_ID=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" 169.254.169.254/latest/meta-data/instance-id)
     AWS_REGION=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" 169.254.169.254/latest/meta-data/placement/region)
     /home/gh-runner/bin/aws ec2 terminate-instances --instance-ids $INSTANCE_ID --region $AWS_REGION
+    exit 0
 else
-  echo "Not enough runners for queue.  Re-configuring and restarting runner listener"
-  /var/lib/cloud/instance/user-data.txt
+  echo "Not enough runners for queue. Not ending"
 fi
 EOF
 # Comment out the below line to NOT terminate instance after running a job
@@ -122,7 +122,7 @@ nohup sudo -u gh-runner bash -c 'cd /home/gh-runner && ./run.sh' &
 def validate_signature(github_signature, payload_body, secret_token):
     """
     Validates the GitHub webhook signature.
-    """
+    """gi
     if not github_signature.startswith("sha256="):
         return False
     expected_signature = github_signature.split("=")[1]
