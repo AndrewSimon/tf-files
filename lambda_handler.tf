@@ -90,14 +90,14 @@ USERDATA = f"""#!/bin/bash
 # Because there is a configurable maximum number of runners, first check
 # the queue: if more jobs than runners, do not terminate
 cat <<'EOF' > /home/gh-runner/bin/complete_lifecycle.sh
-export QUEUED=$(curl -s -L   -H "Accept: application/vnd.github+json"   -H "Authorization: Bearer {GH_PAT}" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/AndrewSimon/tf-files/actions/runs?sort=created&direction=desc&per_page=10"|grep "id" |grep " 2176"| sort -u| awk '{{print $2}}'|sed -e  's/,//g' |while read x
+export QUEUED=$(curl -s -L   -H "Accept: application/vnd.github+json"   -H "Authorization: Bearer {GH_PAT}" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/AndrewSimon/tf-files/actions/runs?sort=created&direction=desc&per_page=30"|grep "id" |grep  -E '"id": [0-9]{{10}},'| sort -u| awk '{{print $2}}'|sed -e  's/,//g' |while read x
 do
 curl -s -L -H "Accept: application/vnd.github+json" -H "Authorization: Bearer {GH_PAT}" -H "X-GitHub-Api-Version: 2022-11-28" https://api.github.com/repos/AndrewSimon/tf-files/actions/runs/$x/jobs
 done | grep -e queued -e running |wc -l)
 export CNT=$(/home/gh-runner/bin/aws ec2 describe-instance-status --instance-ids $(/home/gh-runner/bin/aws ec2 describe-instances --filters "Name=tag:runner,Values=*" --query 'Reservations[].Instances[].InstanceId' --output text) --filters Name=instance-state-name,Values=running,pending --query "length(InstanceStatuses[?InstanceStatus.Status!='ok' || SystemStatus.Status!='ok'])")
 
 if (( $CNT >= $QUEUED )); then
-    echo "Server count is greater than or equal to the number of jobs on the queue, shutting down now"
+    echo "Server count $CNT is greater than or equal to the number of jobs on the queue $QUEUED, shutting down now"
     TOKEN=$(curl -X PUT 'http://169.254.169.254/latest/api/token' -H 'X-aws-ec2-metadata-token-ttl-seconds: 21600')
     INSTANCE_ID=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" 169.254.169.254/latest/meta-data/instance-id)
     AWS_REGION=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" 169.254.169.254/latest/meta-data/placement/region)
