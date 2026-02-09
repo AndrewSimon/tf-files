@@ -34,7 +34,7 @@ data "aws_kms_alias" "lambda_key_alias" {
 # In hopes of lowest spot price, AZ is the last subnet in VPC, 
 # which is public by tf plan
 locals {
-  subnet_id = reverse(tolist(data.aws_subnets.public.ids))[0]
+  subnet_id = data.aws_subnets.public.ids[0]
   depends_on = [
     local.vpc_id
   ]
@@ -70,7 +70,7 @@ EC2_CLIENT = boto3.client('ec2', region_name='${var.aws_region}')
 AWS_REGION = '${var.aws_region}'
 AMI_ID = '${var.ami_id}' # Technology Leadership's GHR AMI 
 INSTANCE_TYPE = '${var.instance_type}'
-SUBNET_ID = '${var.aws_az}'
+SUBNET_ID = '${local.subnet_id}'
 KEY_NAME = '${var.key_name}'
 TAG_KEY = 'runner'
 TAG_VALUE = 'true' # or any value, e.g., 'active' as we check for key
