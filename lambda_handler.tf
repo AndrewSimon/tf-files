@@ -96,15 +96,15 @@ curl -s -L -H "Accept: application/vnd.github+json" -H "Authorization: Bearer {G
 done | grep -e queued -e running |wc -l)
 export CNT=$(/home/gh-runner/bin/aws ec2 describe-instance-status --instance-ids $(/home/gh-runner/bin/aws ec2 describe-instances --filters "Name=tag:runner,Values=*" --query 'Reservations[].Instances[].InstanceId' --output text) --filters Name=instance-state-name,Values=running,pending --query "length(InstanceStatuses[?InstanceStatus.Status!='ok' || SystemStatus.Status!='ok'])")
 
-if (( $CNT >= $QUEUED )); then
-    echo "Server count $CNT is greater than or equal to the number of jobs on the queue $QUEUED, shutting down now"
+if (( $CNT > $QUEUED )); then
+    echo "Server count $CNT is greater than the number of jobs on the queue $QUEUED, shutting down now"
     TOKEN=$(curl -X PUT 'http://169.254.169.254/latest/api/token' -H 'X-aws-ec2-metadata-token-ttl-seconds: 21600')
     INSTANCE_ID=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" 169.254.169.254/latest/meta-data/instance-id)
     AWS_REGION=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" 169.254.169.254/latest/meta-data/placement/region)
     /home/gh-runner/bin/aws ec2 terminate-instances --instance-ids $INSTANCE_ID --region $AWS_REGION
     exit 0
 else
-  echo "Not enough runners ($CNT) for jobs queued ($QUEUED). Not ending life-cycle, will let next job do it."
+  echo "Keeping runners ($CNT) for jobs queued ($QUEUED). Not ending life-cycle, will let next job do it."
 fi
 EOF
 # Comment out the below line to NOT terminate instance after running a job
