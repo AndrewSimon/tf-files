@@ -122,7 +122,7 @@ nohup sudo -u gh-runner bash -c 'cd /home/gh-runner && ./run.sh' &
 def validate_signature(github_signature, payload_body, secret_token):
     """
     Validates the GitHub webhook signature.
-    """gi
+    """
     if not github_signature.startswith("sha256="):
         return False
     expected_signature = github_signature.split("=")[1]
