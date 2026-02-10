@@ -94,6 +94,9 @@ Most early problems will involve AWS credentials.  Ensure your user account can 
 
 For terraform errors, make sure you run terraform init, first. Ensure the variable name that stores the <i>value</i>, such as bucket name, AWS key pair name, the SSM parameter store name, and so on, is not mismatched between the variable names and value types defined in variables.tf versus the resource variable names and value types expected in the other .tf files.  An example of a mismatch in value type is when the value is a string when it should be a list.  The example of a resource name mismatch is when the name given to a value in variables.tf is <i>xy-z</i> but the resource expects the name to be <i>xy_z</i>.  
 
+Kms resource error, resource already exists. Usually happens with multi-region testing/use.  Manually import your resource:
+terraform import aws_iam_policy.kms_decrypt_policy arn:aws:iam::<your-account-number>:policy/kms_decrypt_policy
+
 For webhook errors and return codes:
 1. We couldn't deliver this payload: this usually means there is no capacity for your spot instances. But, wait a minute or two sometimes as the hook may have worked but AWS exceeded Github 10 second wait time to respond
 2. Timeout: this usually means there is no capacity for your spot instances. But, wait a minute or two as sometimes the hook worked but AWS exceeded Github 10 second wait time to respond

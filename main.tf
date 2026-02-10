@@ -72,6 +72,7 @@ resource "aws_route_table" "public_route_table" {
   }
 }
 
+
 # Example single route entry = not needed as was added above
 # Grant the VPC internet access on its main route table
 # resource "aws_route" "internet_access" {
@@ -132,6 +133,21 @@ resource "aws_subnet" "Public_1F" {
   tags                    = {
      "Name" = "Public_1F" 
      }
+}
+
+# Associate public subnets to rt-${vpc_name} to enable public access through igw
+resource "aws_route_table_association" "Public_1A" {
+  subnet_id      = aws_subnet.Public_1A.id
+  route_table_id = aws_route_table.public_route_table.id
+}
+resource "aws_route_table_association" "Public_1D" {
+  subnet_id      = aws_subnet.Public_1D.id
+  route_table_id = aws_route_table.public_route_table.id
+}
+resource "aws_route_table_association" "Public_1F" {
+  count = local.az_count > 5 ? 1 : 0
+  subnet_id      = aws_subnet.Public_1F[6].id
+  route_table_id = aws_route_table.public_route_table.id
 }
 
 ## You will not be able to ssh into your instance if you

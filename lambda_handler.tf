@@ -34,7 +34,7 @@ data "aws_kms_alias" "lambda_key_alias" {
 # In hopes of lowest spot price, AZ is the last subnet in VPC, 
 # which is public by tf plan
 locals {
-  subnet_id = data.aws_subnets.public.ids[0]
+  subnet_id = try(data.aws_subnets.public.ids[0], aws_subnet.Public_1D.id)
   depends_on = [
     local.vpc_id
   ]
@@ -63,11 +63,11 @@ from hmac import compare_digest
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-EC2_CLIENT = boto3.client('ec2', region_name='${var.aws_region}')
+EC2_CLIENT = boto3.client('ec2', region_name='${local.region_name}')
 # Right now, this deploys to whatever your 'default' vpc is set to in your account, 
 # not the one tf-files just created.  We default to Az 'f' in hopes of lower spot costs. 
 #
-AWS_REGION = '${var.aws_region}'
+AWS_REGION = '${local.region_name}'
 AMI_ID = '${var.ami_id}' # Technology Leadership's GHR AMI 
 INSTANCE_TYPE = '${var.instance_type}'
 SUBNET_ID = '${local.subnet_id}'
@@ -96,8 +96,8 @@ curl -s -L -H "Accept: application/vnd.github+json" -H "Authorization: Bearer {G
 done | grep -e queued -e running |wc -l)
 export CNT=$(/home/gh-runner/bin/aws ec2 describe-instance-status --instance-ids $(/home/gh-runner/bin/aws ec2 describe-instances --filters "Name=tag:runner,Values=*" --query 'Reservations[].Instances[].InstanceId' --output text) --filters Name=instance-state-name,Values=running,pending --query "length(InstanceStatuses[?InstanceStatus.Status!='ok' || SystemStatus.Status!='ok'])")
 
-if (( $CNT > $QUEUED )); then
-    echo "Server count $CNT is greater than the number of jobs on the queue $QUEUED, shutting down now"
+if (( $CNT > $QUEUED )) || (( $QUEUED == 0 )); then
+    echo "Server count $CNT is greater than jobs on the queue $QUEUED or QUEUED = 0, shutting down now"
     TOKEN=$(curl -s -X PUT 'http://169.254.169.254/latest/api/token' -H 'X-aws-ec2-metadata-token-ttl-seconds: 21600')
     INSTANCE_ID=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" 169.254.169.254/latest/meta-data/instance-id)
     AWS_REGION=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" 169.254.169.254/latest/meta-data/placement/region)
@@ -378,6 +378,9 @@ resource "aws_iam_role_policy_attachment" "lambda_logs" {
 resource "aws_iam_role_policy_attachment" "lambda_kms" {
   role       = aws_iam_role.lambda_execution_role.name
   policy_arn = aws_iam_policy.kms_decrypt_policy.arn
+  depends_on = [
+    aws_iam_policy.kms_decrypt_policy
+  ]
 }
 
 # IAM policy attachment for basic Lambda access to EC2
@@ -462,11 +465,6 @@ resource "aws_iam_policy" "kms_decrypt_policy" {
 }
 
 ## Due to multi-region support, we need to import AWS global resources, such as policy
-import {
-  to = aws_iam_policy.kms_decrypt_policy
-  id = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:policy/lambda_kms_decrypt_policy"
-}
-
 import {
   to = aws_iam_policy.ec2_describe_policy
   id = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:policy/lambda_ec2_describe_policy"
