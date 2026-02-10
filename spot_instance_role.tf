@@ -113,10 +113,10 @@ resource "aws_iam_instance_profile" "spot_instance_profile" {
   role = aws_iam_role.spot_instance_role.name
 }
 
-resource "aws_iam_instance_profile" "spot_profile" {
-  name = "spot_profile"
-  role = aws_iam_role.spot_instance_role.name
-}
+#resource "aws_iam_instance_profile" "spot_profile" {
+#  name = "spot_profile"
+#  role = aws_iam_role.spot_instance_role.name
+#}
 
 ## Due to multi-region support, we need to import AWS global resources, such as policy
 import {

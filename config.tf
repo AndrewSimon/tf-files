@@ -1,7 +1,8 @@
 provider "aws" {
 ## Terraform can find aws creds in ~/.aws directory
 ## Github creds are manually stored in SSM parameter store
-  region     = "${var.aws_region}"
+## Set AWS_REGION via export AWS_REGION=your-region
+  region     = ""
 }
 
 terraform {

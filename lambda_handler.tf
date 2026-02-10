@@ -34,7 +34,7 @@ data "aws_kms_alias" "lambda_key_alias" {
 # In hopes of lowest spot price, AZ is the last subnet in VPC, 
 # which is public by tf plan
 locals {
-  subnet_id = data.aws_subnets.public.ids[0]
+  subnet_id = try(data.aws_subnets.public.ids[0], aws_subnet.Public_1D.id)
   depends_on = [
     local.vpc_id
   ]
@@ -63,11 +63,11 @@ from hmac import compare_digest
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-EC2_CLIENT = boto3.client('ec2', region_name='${var.aws_region}')
+EC2_CLIENT = boto3.client('ec2', region_name='${local.region_name}')
 # Right now, this deploys to whatever your 'default' vpc is set to in your account, 
 # not the one tf-files just created.  We default to Az 'f' in hopes of lower spot costs. 
 #
-AWS_REGION = '${var.aws_region}'
+AWS_REGION = '${local.region_name}'
 AMI_ID = '${var.ami_id}' # Technology Leadership's GHR AMI 
 INSTANCE_TYPE = '${var.instance_type}'
 SUBNET_ID = '${local.subnet_id}'
@@ -378,6 +378,9 @@ resource "aws_iam_role_policy_attachment" "lambda_logs" {
 resource "aws_iam_role_policy_attachment" "lambda_kms" {
   role       = aws_iam_role.lambda_execution_role.name
   policy_arn = aws_iam_policy.kms_decrypt_policy.arn
+  depends_on = [
+    aws_iam_policy.kms_decrypt_policy
+  ]
 }
 
 # IAM policy attachment for basic Lambda access to EC2
@@ -462,11 +465,6 @@ resource "aws_iam_policy" "kms_decrypt_policy" {
 }
 
 ## Due to multi-region support, we need to import AWS global resources, such as policy
-import {
-  to = aws_iam_policy.kms_decrypt_policy
-  id = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:policy/lambda_kms_decrypt_policy"
-}
-
 import {
   to = aws_iam_policy.ec2_describe_policy
   id = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:policy/lambda_ec2_describe_policy"
