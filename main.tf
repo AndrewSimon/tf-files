@@ -146,8 +146,8 @@ resource "aws_route_table_association" "Public_1D" {
 }
 resource "aws_route_table_association" "Public_1F" {
   count = local.az_count > 5 ? 1 : 0
-  subnet_id      = aws_subnet.Public_1F[6].id
-  route_table_id = aws_route_table.public_route_table.id
+  subnet_id      = aws_subnet.Public_1F[0].id
+  route_table_id = aws_route_table.public_route_table.id   
 }
 
 ## You will not be able to ssh into your instance if you
@@ -237,22 +237,6 @@ resource "github_actions_secret" "account_id" {
   plaintext_value = ""  # "${data.aws_caller_identity.current.account_id}" will store in GH
 }
 
-data "github_actions_registration_token" "spot_runner" {
-  repository = "${local.repo}"
+output "spot   _subnet" {
+  value = aws_subnet.Public_1F[0].id
 }
-
-output "registration_token" {
-  value     = data.github_actions_registration_token.spot_runner.token
-  sensitive = true # Mark as sensitive to prevent logging the token
-}
-
-output "token_expiration" {
-  value = data.github_actions_registration_token.spot_runner.expires_at
-}
-# Output the ARN of the created event bus
-output "event_bus_arn" {
-  value = aws_cloudwatch_event_bus.custom_bus.arn
-}
-#output "spot_az" {
-#  value = reverse(data.aws_availability_zones.azs.names)[0]
-#}
