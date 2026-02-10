@@ -96,8 +96,8 @@ curl -s -L -H "Accept: application/vnd.github+json" -H "Authorization: Bearer {G
 done | grep -e queued -e running |wc -l)
 export CNT=$(/home/gh-runner/bin/aws ec2 describe-instance-status --instance-ids $(/home/gh-runner/bin/aws ec2 describe-instances --filters "Name=tag:runner,Values=*" --query 'Reservations[].Instances[].InstanceId' --output text) --filters Name=instance-state-name,Values=running,pending --query "length(InstanceStatuses[?InstanceStatus.Status!='ok' || SystemStatus.Status!='ok'])")
 
-if (( $CNT > $QUEUED )); then
-    echo "Server count $CNT is greater than the number of jobs on the queue $QUEUED, shutting down now"
+if (( $CNT > $QUEUED )) || (( $QUEUED == 0 )); then
+    echo "Server count $CNT is greater than jobs on the queue $QUEUED or QUEUED = 0, shutting down now"
     TOKEN=$(curl -s -X PUT 'http://169.254.169.254/latest/api/token' -H 'X-aws-ec2-metadata-token-ttl-seconds: 21600')
     INSTANCE_ID=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" 169.254.169.254/latest/meta-data/instance-id)
     AWS_REGION=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" 169.254.169.254/latest/meta-data/placement/region)
