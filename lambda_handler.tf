@@ -424,6 +424,15 @@ resource "aws_lambda_function_url" "spot_lambda_url" {
     }
 }
 
+# Explicitly grant public access permission to the function URL
+resource "aws_lambda_permission" "allow_public_access" {
+  statement_id     = "FunctionURLAllowPublicAccess"
+  action           = "lambda:InvokeFunctionUrl"
+  function_name    = aws_lambda_function.spot_runner.function_name
+  principal        = "*" # Allows any caller
+  # The function_url_auth_type condition is crucial for public access
+  function_url_auth_type = "NONE"
+}
 ## Due to multi-region support, we need to import AWS global resources, such as policy
 import {
   to = aws_iam_policy.ec2_describe_policy
