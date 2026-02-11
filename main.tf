@@ -237,6 +237,10 @@ resource "github_actions_secret" "account_id" {
   plaintext_value = ""  # "${data.aws_caller_identity.current.account_id}" will store in GH
 }
 
-output "spot   _subnet" {
+data "github_actions_registration_token" "spot_runner" {
+  repository = "${local.repo}"
+}
+
+output "spot_subnet" {
   value = aws_subnet.Public_1F[0].id
 }
