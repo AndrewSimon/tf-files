@@ -26,11 +26,6 @@ data "aws_ssm_parameter" "gh_webhook_secret" {
       with_decryption = true
 }
 
-#Data source to retrieve the ARN of the AWS managed key for Lambda
-data "aws_kms_alias" "lambda_key_alias" {
-  name = "alias/aws/lambda"
-}
-
 # In hopes of lowest spot price, AZ is the last subnet in VPC, 
 # which is public by tf plan
 locals {
@@ -305,25 +300,6 @@ data "aws_iam_policy_document" "AWSLambdaTrustPolicy" {
   }
 }
 
-# For access to KMS
-data "aws_iam_policy_document" "lambda_kms_access" {
-    statement {
-    sid    = "KMSAccessForLambda"
-    effect = "Allow"
-
-    # Actions required for typical KMS usage (e.g., encryption/decryption)
-    actions = [
-      "kms:Decrypt",
-      "kms:Encrypt",
-      "kms:GenerateDataKey",
-      "kms:DescribeKey",
-    ]
-
-    # The Resource must use the actual Key ARN, not the alias ARN
-    resources = [data.aws_kms_alias.lambda_key_alias.target_key_arn]
-  }
-}
-
 # For access to EC2 DescribeInstances
 resource "aws_iam_policy" "ec2_describe_policy" {
   name        = "lambda_ec2_describe_policy"
@@ -368,19 +344,15 @@ resource "aws_iam_role" "lambda_execution_role" {
   assume_role_policy = data.aws_iam_policy_document.AWSLambdaTrustPolicy.json
 }
 
+resource "aws_iam_role_policy_attachment" "lambda_kms_attach" {
+  role       = "lambda_execution_role" # Ensure this matches your exact role name
+  policy_arn = "arn:aws:iam::aws:policy/AWSKeyManagementServicePowerUser"
+}
+
 # IAM policy attachment for basic Lambda execution (logging to CloudWatch)
 resource "aws_iam_role_policy_attachment" "lambda_logs" {
   role       = aws_iam_role.lambda_execution_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-}
-
-# IAM policy attachment for basic Lambda access to KMS
-resource "aws_iam_role_policy_attachment" "lambda_kms" {
-  role       = aws_iam_role.lambda_execution_role.name
-  policy_arn = aws_iam_policy.kms_decrypt_policy.arn
-  depends_on = [
-    aws_iam_policy.kms_decrypt_policy
-  ]
 }
 
 # IAM policy attachment for basic Lambda access to EC2
@@ -396,12 +368,6 @@ resource "aws_iam_role_policy_attachment" "lambda_spot" {
   depends_on = [
     aws_iam_policy.spot_policy
   ]
-}
-
-resource "aws_iam_role_policy" "lambda_kms_policy_attachment" {
-  name = "lambda_kms_access_policy"
-  role = "lambda_execution_role"
-  policy = data.aws_iam_policy_document.lambda_kms_access.json
 }
 
 # Register the webhook in GitHub
@@ -456,12 +422,6 @@ resource "aws_lambda_function_url" "spot_lambda_url" {
     # Maximum amount of time - set this to match webhook timeout
     max_age = 10
     }
-}
-
-resource "aws_iam_policy" "kms_decrypt_policy" {
-  name        = "kms_decrypt_policy"
-  description = "Allows Lambda to Decrypt KMS"
-  policy      = data.aws_iam_policy_document.lambda_kms_access.json
 }
 
 ## Due to multi-region support, we need to import AWS global resources, such as policy
