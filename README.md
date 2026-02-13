@@ -81,23 +81,31 @@ main.tf: Nothing needs to change. Optionally, change 'test2' to another VPC name
 
 ### Run command-line Terraform commands to test, execute and destroy
 1. cd tf-files
-2. First time only, run: terraform init (or terraform init --reconfigure)
+2. First time only, run: terraform init (or terraform init --reconfigure if multi-region)
 3. To test, run: terraform plan
-4. To execute with automatic 'yes', run: terraform apply -auto-approve
-5. To override AZ placement of runner to us-east-1a (for example), run: terraform apply -auto-approve -var="aws_subnet_tag=Public_1A"
-6. If override spot market and/or want on-demand, run: terraform apply -auto-approve -var="spot_market=False"
-7. To override (to 50Gb, for example) the default root filesystem, run: terraform apply -auto-approve -var="volume_size=50"  
-8. To cleanup, run: terraform destroy
+4. First time only, stand up the VPC first, run: terraform apply -target aws_vpc.test2
+5. To execute the rest of the plan with automatic 'yes', run: terraform apply -auto-approve
+6. First time only, re-run number 5 above!  Everything is created already so it runs fast.  This re-run is necessary for lambda to pick up the subnet id of the spot runner.  Lambda will have the sunbet id on all subsequent runs.
+7. First time only, permission the lambda url manually: Go to Amazon AWS console lambda --> lambda functions --> SpotRunner --> Configuration --> Function URL -->  Edit (the updated policy shows automatically) --> (scroll to bottom) Save. That's it!  Terraform (bug) does not permission this and therefore won't replace it.  The change exists until you run terraform destroy.
+8. To override AZ placement and ami_id of runner to ap-northeast-1d (for example), run: terraform apply -auto-approve  -var="ami_id=ami-0fea7406b1a381700" -var="aws_subnet_tag=Public_1D"
+9. If override spot market and/or want on-demand, run: terraform apply -auto-approve -var="spot_market=False"9
+10. To override (to 50Gb, for example) the default root filesystem, run: terraform apply -auto-approve -var="volume_size=50"  
+11. To cleanup, run: terraform destroy
 
 ### Trouble-shooting
 Most early problems will involve AWS credentials.  Ensure your user account can create resources in the console.  The `aws s3 mb` command will work as long as it is a <i>unique</i> bucket name and your account has the create bucket access policy.  Confirm in the console you can create and read an existing s3 bucket, if you cannot do so command-line.  Do the same type of access check via Console for the SSM parameter store, VPC component, and EC2 instance creation, as well.  Adjust user account roles and policies, as needed.
 
 For terraform errors, make sure you run terraform init, first. Ensure the variable name that stores the <i>value</i>, such as bucket name, AWS key pair name, the SSM parameter store name, and so on, is not mismatched between the variable names and value types defined in variables.tf versus the resource variable names and value types expected in the other .tf files.  An example of a mismatch in value type is when the value is a string when it should be a list.  The example of a resource name mismatch is when the name given to a value in variables.tf is <i>xy-z</i> but the resource expects the name to be <i>xy_z</i>.  
 
-Kms resource error, resource already exists. Usually happens with multi-region testing/use.  Manually delete your resource as it won't if from another region:
+NoSuchEntity: The role with name lambda_execution_role cannot be found.  Do not change anything, just re-run terraform apply again.
+
+Kms, resource already exists. Usually happens with multi-region testing/use.  Manually delete your resource as it won't if from another region:
  terraform destroy -target=aws_iam_policy.kms_decrypt_policy
+ 
+ 
 
 For webhook errors and return codes:
+
 1. We couldn't deliver this payload: this usually means there is no capacity for your spot instances. But, wait a minute or two sometimes as the hook may have worked but AWS exceeded Github 10 second wait time to respond
 2. Timeout: this usually means there is no capacity for your spot instances. But, wait a minute or two as sometimes the hook worked but AWS exceeded Github 10 second wait time to respond
 3. Return code 200:  This means the webhook succeeded. Verify in the details that an instance was launched, otherwise it will give a count of already running instances. To increase the number of allowed runners to 10, for example, override with -var="max_instances=10"

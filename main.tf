@@ -16,9 +16,30 @@
 #  id       = each.value
 #}
 
+
+data "aws_region" "current" {}
+
+data "aws_availability_zones" "azs" {}
+
+# Existing implies the vpc_name exists
+data "aws_vpcs" "existing" {
+  filter {
+    name   = "tag:Name"
+    values = ["${var.vpc_name}"]
+  }
+}
+
+data "aws_instances" "existing" {
+  filter {
+    name   = "tag:Name"
+    values = ["TLC"]
+  }
+}
+
 # Create a VPC to launch our instances into, must be hard-coded
 # Change "test2" to whatever you changed vpc_name to in varialbes.tf
 resource "aws_vpc" "test2" {
+  #count = 1
   cidr_block = "192.168.10.0/24"
   enable_dns_hostnames = "true"
   tags                    = {
@@ -26,25 +47,17 @@ resource "aws_vpc" "test2" {
      }
 }
 
-data "aws_region" "current" {}
-
-data "aws_availability_zones" "azs" {}
-
-data "aws_vpc" "selected" {
-  tags = {
-    Name = var.vpc_name
-  }
-}
-
 locals {
-#  vpc_id_by_name = {
-#    for vpc in data.aws_vpc.all_details :
-#    vpc.tags["Name"] => vpc.id
-#  }
-  target_vpc_name = "test2"
-  vpc_id = aws_vpc.test2.id
-  region_name = data.aws_region.current.region
-  az_count = length(data.aws_availability_zones.azs.names)
+# If test2 vpc, TLC instance exists set bool 1 > 0 (true)
+  vpc_exists      = length(data.aws_vpcs.existing.ids) > 0
+  instance_exists = length(data.aws_instances.existing.ids) > 0
+# If bool true get vpc id, if false get from new vpc source
+  #vpc_id = local.vpc_exists ? data.aws_vpcs.existing.ids[0] : one(aws_vpc.test2[*].id)
+  vpc_id = try(data.aws_vpcs.existing.ids[0], null) 
+  region_name    = data.aws_region.current.region
+  vpc_count      = length(data.aws_vpcs.existing.ids)
+  instance_count = length(data.aws_instances.existing.ids)
+  az_count  = length(data.aws_availability_zones.azs.names)
   az_a = "${local.region_name}a"
   az_b = "${local.region_name}b"
   az_c = "${local.region_name}c"
@@ -61,6 +74,8 @@ resource "aws_internet_gateway" "gw1" {
 }
 
 resource "aws_route_table" "public_route_table" {
+  count = local.vpc_id != null && local.vpc_id != "" ? 1 : 0
+  
   vpc_id = local.vpc_id
   # Grant the VPC internet access on its main route table
   route {
@@ -85,6 +100,7 @@ resource "aws_route_table" "public_route_table" {
 # Create 5 subnets to launch our instances into
 # The first two are private, the remaining three public
 resource "aws_subnet" "Private_1A" {
+  count = local.vpc_id != null && local.vpc_id != "" ? 1 : 0
   vpc_id = local.vpc_id
   cidr_block              = "192.168.10.192/27"
   availability_zone = "${local.az_a}"
@@ -95,6 +111,7 @@ resource "aws_subnet" "Private_1A" {
 }
 
 resource "aws_subnet" "Private_1D" {
+  count = local.vpc_id != null && local.vpc_id != "" ? 1 : 0
   vpc_id = local.vpc_id
   cidr_block              = "192.168.10.224/27"
   map_public_ip_on_launch = false
@@ -104,6 +121,7 @@ resource "aws_subnet" "Private_1D" {
      }
 }
 resource "aws_subnet" "Public_1A" {
+  count = local.vpc_id != null && local.vpc_id != "" ? 1 : 0
   vpc_id = local.vpc_id
   cidr_block              = "192.168.10.64/27"
   map_public_ip_on_launch = true
@@ -113,6 +131,7 @@ resource "aws_subnet" "Public_1A" {
      }
 }
 resource "aws_subnet" "Public_1D" {
+  count = local.vpc_id != null && local.vpc_id != "" ? 1 : 0
   vpc_id = local.vpc_id
   cidr_block              = "192.168.10.128/27"
   map_public_ip_on_launch = true
@@ -120,6 +139,9 @@ resource "aws_subnet" "Public_1D" {
   tags                    = {
      "Name" = "Public_1D" 
      }
+  depends_on = [
+    local.vpc_id
+  ]
 }
 
 ## If your region does not have an 'F' AZ -  comment this out entirely 
@@ -137,17 +159,19 @@ resource "aws_subnet" "Public_1F" {
 
 # Associate public subnets to rt-${vpc_name} to enable public access through igw
 resource "aws_route_table_association" "Public_1A" {
-  subnet_id      = aws_subnet.Public_1A.id
-  route_table_id = aws_route_table.public_route_table.id
+  count = local.vpc_id != null && local.vpc_id != "" ? 1 : 0
+  subnet_id      = aws_subnet.Public_1A[0].id
+  route_table_id = aws_route_table.public_route_table[0].id
 }
 resource "aws_route_table_association" "Public_1D" {
-  subnet_id      = aws_subnet.Public_1D.id
-  route_table_id = aws_route_table.public_route_table.id
+  count = local.vpc_id != null && local.vpc_id != "" ? 1 : 0
+  subnet_id      = aws_subnet.Public_1D[0].id
+  route_table_id = aws_route_table.public_route_table[0].id
 }
 resource "aws_route_table_association" "Public_1F" {
-  count = local.az_count > 5 ? 1 : 0
+  count = local.az_count > 5 && local.vpc_id != null && local.vpc_id != "" ? 1 : 0
   subnet_id      = aws_subnet.Public_1F[0].id
-  route_table_id = aws_route_table.public_route_table.id   
+  route_table_id = aws_route_table.public_route_table[0].id   
 }
 
 ## You will not be able to ssh into your instance if you
@@ -197,10 +221,11 @@ resource "aws_security_group" "default" {
 
 # We instantiate 1 on-demand in AZ Public 1D.
 resource "aws_instance" "tf-instance" {
+#  count = local.instance_count == 0 ? 1 : 0
   ami   = "${var.ami_id}"
   associate_public_ip_address = true
   instance_type = "${var.instance_type}"
-  subnet_id = "${aws_subnet.Public_1D.id}"
+  subnet_id = "${aws_subnet.Public_1D[0].id}"
   key_name   = "${var.key_name}"
   vpc_security_group_ids = [
     "${aws_security_group.default.id}"
@@ -213,9 +238,12 @@ resource "aws_instance" "tf-instance" {
      }
   lifecycle {
     ignore_changes = [
-      ## ignore for the on-demand instance, if already instantiated
-      ## these options are primarily for the spot instance gh runner(s)
+      ## ignore for the static on-demand instance, if already instantiated
+      ## these options are primarily for ephemeral or non-existent instances
       ami,
+      region,
+      availability_zone,
+      subnet_id,
       instance_type,
       key_name,
       tags
@@ -242,5 +270,5 @@ data "github_actions_registration_token" "spot_runner" {
 }
 
 output "spot_subnet" {
-  value = aws_subnet.Public_1F[0].id
+  value = try(data.aws_subnets.public[0].ids, aws_subnet.Public_1D[0].id)
 }

@@ -8,7 +8,9 @@ data "aws_vpc" "main" {
   ]
 }
 
+#Used by boto3 once there is a public IP
 data "aws_subnets" "public" {
+ count = length(data.aws_vpcs.existing.ids) > 0 ? 1 : 0
   filter {
     name   = "vpc-id"
     values = [data.aws_vpc.main.id] 
@@ -29,7 +31,7 @@ data "aws_ssm_parameter" "gh_webhook_secret" {
 # In hopes of lowest spot price, AZ is the last subnet in VPC, 
 # which is public by tf plan
 locals {
-  subnet_id = try(data.aws_subnets.public.ids[0], aws_subnet.Public_1D.id)
+  spot_subnet = tostring(try(join(", ", data.aws_subnets.public[0].ids), aws_subnet.Public_1D[0].id))
   depends_on = [
     local.vpc_id
   ]
@@ -65,7 +67,7 @@ EC2_CLIENT = boto3.client('ec2', region_name='${local.region_name}')
 AWS_REGION = '${local.region_name}'
 AMI_ID = '${var.ami_id}' # Technology Leadership's GHR AMI 
 INSTANCE_TYPE = '${var.instance_type}'
-SUBNET_ID = '${local.subnet_id}'
+SUBNET_ID = '${local.spot_subnet}'
 KEY_NAME = '${var.key_name}'
 TAG_KEY = 'runner'
 TAG_VALUE = 'true' # or any value, e.g., 'active' as we check for key
@@ -347,18 +349,27 @@ resource "aws_iam_role" "lambda_execution_role" {
 resource "aws_iam_role_policy_attachment" "lambda_kms_attach" {
   role       = "lambda_execution_role" # Ensure this matches your exact role name
   policy_arn = "arn:aws:iam::aws:policy/AWSKeyManagementServicePowerUser"
+  depends_on = [
+    aws_iam_role.lambda_execution_role
+  ]  
 }
 
 # IAM policy attachment for basic Lambda execution (logging to CloudWatch)
 resource "aws_iam_role_policy_attachment" "lambda_logs" {
   role       = aws_iam_role.lambda_execution_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+  depends_on = [
+    aws_iam_role.lambda_execution_role
+  ]
 }
 
 # IAM policy attachment for basic Lambda access to EC2
 resource "aws_iam_role_policy_attachment" "lambda_ec2" {
   role       = aws_iam_role.lambda_execution_role.name
   policy_arn = aws_iam_policy.ec2_run_policy.arn
+  depends_on = [
+    aws_iam_role.lambda_execution_role
+  ]
 }
 
 # Attach the spot_policy from spot_instance_role to the lambda_execution_role
@@ -382,6 +393,9 @@ resource "github_repository_webhook" "tf_webhook" {
   }
   active = true
   events = ["push"] # Choose the events you need
+  depends_on = [
+    aws_iam_role.lambda_execution_role
+  ]
 }
 
 # AWS Lambda function resource
@@ -400,6 +414,9 @@ resource "aws_lambda_function" "spot_runner" {
       GREETING = "Hello"
     }
   }
+  depends_on = [
+    aws_iam_role.lambda_execution_role
+  ]
 }
 
 # The real security is SSL - this is safe as long as github's SSL
@@ -434,20 +451,20 @@ resource "aws_lambda_permission" "allow_public_access" {
   function_url_auth_type = "NONE"
 }
 ## Due to multi-region support, we need to import AWS global resources, such as policy
-import {
-  to = aws_iam_policy.ec2_describe_policy
-  id = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:policy/lambda_ec2_describe_policy"
-}
+#import {
+#  to = aws_iam_policy.ec2_describe_policy
+#  id = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:policy/lambda_ec2_describe_policy"
+#}
 
-import {
-  to = aws_iam_policy.ec2_run_policy
-  id = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:policy/lambda_ec2_run_policy"
-}
+#import {
+#  to = aws_iam_policy.ec2_run_policy
+#  id = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:policy/lambda_ec2_run_policy"
+#}
 
-import {
-  to = aws_iam_role.lambda_execution_role
-  id = "lambda_execution_role"
-}
+#import {
+#  to = aws_iam_role.lambda_execution_role
+#  id = "lambda_execution_role"
+#}
 
 # Optional: Output the function name
 output "lambda_function_name" {
