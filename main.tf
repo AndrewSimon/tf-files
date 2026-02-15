@@ -243,6 +243,7 @@ resource "aws_instance" "tf-instance" {
       ami,
       region,
       availability_zone,
+      associate_public_ip_address,
       subnet_id,
       instance_type,
       key_name,
