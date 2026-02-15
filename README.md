@@ -9,17 +9,17 @@ This is a terraform plan that:
 5.  Imports a key pair (just needs public key), uses an existing known working key pair
 6.  Gets SG CIDR blocks (list), GH token and other secrets from SSM parameter store
 7.  Creates a Security Group
-8.  Instantiates one on-demand server in one of the Public subnets
+8.  Instantiates one on-demand server in one of the Public subnets. NOT a runner. Either import an existing, or create a new one.
 9.  As part of instantiation, assign the sg created earlier and adds a public IP
 10. Creates a github.com webhook for the tf-files with push trigger
 11. Creates an AWS lambda function and lambda url for the webhook to contact
-12. Lambda uses boto3 to instantiate a spot instance to create a github self-hosted runner
+12. Lambda uses boto3 to instantiate a (default) spot or on-demand instance to register as github self-hosted runner
 13. Contains a github action to queue a job that runs when the runner is available
-14. The github action installs dependencies, prints runner's OS (currently: Linux-5.15.0-101.103.2.1.el9uek.x86_64-x86_64-with-glibc2.34) to show it is your runner and it works, and sleeps to help create a queue for testing multiple jobs
-15. Creates a lot of IAM policy documents and roles for steps 1-14 above to work
+14. The github action installs dependencies, prints runner's OS (currently: Linux-5.15.0-101.103.2.1.el9uek.x86_64-x86_64-with-glibc2.34) and hostname, which discloses region instance is in.
+15. MOST IMPORTANTLY: Creates the ACTIONS_RUNNER_HOOK_JOB_COMPLETED lifecycle (termination) step via ec2 instance user-data
+16. Creates a lot of IAM policy documents and roles for steps 1-15 above to work
 
-The Github Actions workflow describes the dependencies and how to modify it to disable the Dynamic Runner life-cycle for that job/repo, until reverted.  This is intentional and does return some control of the life-cycle from the 'administrator' back to the 'developer'.  You will have to add the dependencies via user-data and/or a new AMI image to block the developers' ability to disable the life-cycle.
-
+The Github Actions workflow comments describe the dependency install and how to modify to disable the Dynamic Runner life-cycle until reverted.  Life-cycle dependency on the repo job does return some control of the life-cycle from the 'administrator' back to the 'developer' using that repo.  Administrators need move only one step out of github actions to the user-data defined in terraform to remove non-Administrators' ability to disable the life-cycle.
 
 ## Prerequisites
 The packages and setup required to be installed before starting are:
@@ -29,7 +29,16 @@ The packages and setup required to be installed before starting are:
 3. awscliv2
 4. Terraform
 5. SSM parameter store values for AWS Security Group CIDR list, GH Pat, GH Webhook secret
-6. An s3 bucket for the terraform 'backend' to use to store terraform state 
+6. An s3 bucket for the terraform 'backend' to use to store terraform state
+7. Subscription to the TLC Github Actions Runner AMI (alternate AMI's are unsupported).
+
+## Subscribe to Technology Leadership Corporation's GHR2.33 AMI:
+1. Copy-and-paste the link below into your browser, and navigate to:
+https://aws.amazon.com/marketplace/pp/prodview-zsmcixdrlp2ti
+2. Click 'View Purchase options
+3. Fill out the form, selecting hourly or yearly, etc.
+4. Click Subscribe button
+
 
 ## Git Client Install on your local device:
 ```
@@ -86,7 +95,7 @@ main.tf: Nothing needs to change. Optionally, change 'test2' to another VPC name
 4. First time only, stand up the VPC first, run: terraform apply -target aws_vpc.test2
 5. To execute the rest of the plan with automatic 'yes', run: terraform apply -auto-approve
 6. First time only, re-run number 5 above!  Everything is created already so it runs fast.  This re-run is necessary for lambda to pick up the subnet id of the spot runner.  Lambda will have the sunbet id on all subsequent runs.
-7. First time only, permission the lambda url manually: Go to Amazon AWS console lambda --> lambda functions --> SpotRunner --> Configuration --> Function URL -->  Edit (the updated policy shows automatically) --> (scroll to bottom) Save. That's it!  Terraform (bug) does not permission this and therefore won't replace it.  The change exists until you run terraform destroy.
+7. First time only, permission the lambda function url manually.  See Trouble-shooting, return code 403 below for instructions.
 8. To override AZ placement and ami_id of runner to ap-northeast-1d (for example), run: terraform apply -auto-approve  -var="ami_id=ami-0fea7406b1a381700" -var="aws_subnet_tag=Public_1D"
 9. If override spot market and/or want on-demand, run: terraform apply -auto-approve -var="spot_market=False"9
 10. To override (to 50Gb, for example) the default root filesystem, run: terraform apply -auto-approve -var="volume_size=50"  
@@ -109,8 +118,9 @@ For webhook errors and return codes:
 1. We couldn't deliver this payload: this usually means there is no capacity for your spot instances. But, wait a minute or two sometimes as the hook may have worked but AWS exceeded Github 10 second wait time to respond
 2. Timeout: this usually means there is no capacity for your spot instances. But, wait a minute or two as sometimes the hook worked but AWS exceeded Github 10 second wait time to respond
 3. Return code 200:  This means the webhook succeeded. Verify in the details that an instance was launched, otherwise it will give a count of already running instances. To increase the number of allowed runners to 10, for example, override with -var="max_instances=10"
-4. Return code 502: run 'terraform taint aws_lambda_function.spot_runner', then run terraform apply
-5. Return code 401 - Invalid Signature: The webhook-secret does not match between the repository commit-hook and SSM.  Fix it in either SSM or the GH Webhook for that repo.  As a forged SSL from outside github.com will have been completely blocked from connecting to the lambda url, thus could not have sent lambda a webhook secret, it *must* be someone inside gitub.com domain who stumbled upon your Amazon lambda url, even though there is a 1 in 1.5e+54 chance of that happening (the chance of picking the right atom in Avagrado's number is *only* 1 in 6e+23), and sent you the wrong secret or worse, is trying to 'hack' you.  It is *much* more likely, though, that someone who has access to the webhook's repo where you are seeing this has updated the webhook secret without telling you.  Alternately, they have access to SSM and changed it there without telling you.  The rarity of hitting your lambda url is why the web secret is completely unnecessary; but for 'best practices', I waste your valuable (more so than a web secret) electrons verifying the signature for you, anyway. 
+4. Return code 403: Permission denied. To permission the lambda function url manually: Go to Amazon AWS console lambda --> lambda functions --> SpotRunner --> Configuration --> Function URL -->  Edit (the updated policy shows automatically, do not type anything!) --> (scroll to bottom) Save. That's it!  Terraform (bug) does not permission this and therefore won't replace it.  The change exists until you run terraform destroy.  Without it, the lambda function url does not have permission to invoke lambda on Github's behalf. 
+5. Return code 502: run 'terraform taint aws_lambda_function.spot_runner', then run terraform apply
+6. Return code 401 - Invalid Signature: The webhook-secret does not match between the repository commit-hook and SSM.  Fix it in either SSM or the GH Webhook for that repo.  As a forged SSL from outside github.com will have been completely blocked from connecting to the lambda url, thus could not have sent lambda a webhook secret, it *must* be someone inside gitub.com domain who stumbled upon your Amazon lambda url, even though there is a 1 in 1.5e+54 chance of that happening (the chance of picking the right atom in Avagrado's number is *only* 1 in 6e+23), and sent you the wrong secret or worse, is trying to 'hack' you.  It is *much* more likely, though, that someone who has access to the webhook's repo where you are seeing this has updated the webhook secret without telling you.  Alternately, they have access to SSM and changed it there without telling you.  The rarity of hitting your lambda url is why the web secret is completely unnecessary; but for 'best practices', I waste your valuable (more so than a web secret) electrons verifying the signature for you, anyway. 
 
 ## Maintainers
 
