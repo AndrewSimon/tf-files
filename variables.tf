@@ -28,7 +28,7 @@ variable "instance_type" {
 variable "ami_id" {
   description = "Subscribe to https://aws.amazon.com/marketplace/pp/prodview-zsmcixdrlp2ti for the correct AMI ID."
   type        = string
-  default = "ami-00105ec16deadf5b2" # This may not be the Marketplace AMI ID in our region
+  default = "ami-0718b118e794b9856" # This Marketplace AMI ID in ap-northeast-2 (South Korea)
 }
 
 variable "spot_market" {
