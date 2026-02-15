@@ -39,6 +39,16 @@ https://aws.amazon.com/marketplace/pp/prodview-zsmcixdrlp2ti
 3. Fill out the form, selecting hourly or yearly, etc.
 4. Click Subscribe button
 
+Once subscribed, you can get the AMI ID you will need for variables.tf or -var"_ami_id=<ami-i>" override:
+1. From aws console, navigate to EC2 Dashboard --> Launch Instances button (below the Resources list box)
+2. In 'Application and OS Images (Amazon Machine Image)' list box, selec the 'Browse more AMI' option box
+3. Click AWS Marketplace AMIs, then--> Click 'Search for an AMI', enter: *runner by tlc*, hit enter
+4. One entry will be found, Oracle Linux 9 with Github Actions Runner by TLC.  Click 'Select' button to the right of it
+5. In 'AMI from Catalog' tab that is open, look for Image ID. In Seoul Korea*, it is ami-0718b118e794b9856
+6. Cancel out of launching.  These will come up anytime your 'redeliver' a previous hook, or make a new push commit.
+
+**For maximum spot capacity availability, I must use South Korea**
+It is 13 or 14 hours ahead of my TZ. They have (tf-files required minimum) 4 AZ and it is their 10PM to 6AM during my 9am to 5pm EST
 
 ## Git Client Install on your local device:
 ```
