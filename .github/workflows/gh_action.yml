@@ -6,6 +6,7 @@ jobs:
   complete-lifecycle:
     #runs-on: ubuntu-latest # For GH Runners, not self-hosted
     runs-on: self-hosted
+    continue-on-error: true # ALL jobs need this to reach runner hook's lifecycle
     environment: public 
     permissions:
       id-token: write # Required for OIDC authentication
