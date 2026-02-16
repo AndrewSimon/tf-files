@@ -10,13 +10,6 @@
 ## 6) As part of instantiation, assign the sg created earlier and add a public IP
 ## 7) Create Github and EventBridge (not used here) actions
 
-#data "aws_vpcs" "all" {}
-#data "aws_vpc" "all_details" {
-#  for_each = data.aws_vpcs.all.ids
-#  id       = each.value
-#}
-
-
 data "aws_region" "current" {}
 
 data "aws_availability_zones" "azs" {}
@@ -29,17 +22,8 @@ data "aws_vpcs" "existing" {
   }
 }
 
-data "aws_instances" "existing" {
-  filter {
-    name   = "tag:Name"
-    values = ["TLC"]
-  }
-}
-
-# Create a VPC to launch our instances into, must be hard-coded
-# Change "test2" to whatever you changed vpc_name to in varialbes.tf
+# Apply this first! terraform apply -target aws_vpc.test2
 resource "aws_vpc" "test2" {
-  #count = 1
   cidr_block = "192.168.10.0/24"
   enable_dns_hostnames = "true"
   tags                    = {
@@ -50,13 +34,13 @@ resource "aws_vpc" "test2" {
 locals {
 # If test2 vpc, TLC instance exists set bool 1 > 0 (true)
   vpc_exists      = length(data.aws_vpcs.existing.ids) > 0
-  instance_exists = length(data.aws_instances.existing.ids) > 0
+#  instance_exists = length(data.aws_instances.existing.ids) > 0
 # If bool true get vpc id, if false get from new vpc source
   #vpc_id = local.vpc_exists ? data.aws_vpcs.existing.ids[0] : one(aws_vpc.test2[*].id)
   vpc_id = try(data.aws_vpcs.existing.ids[0], null) 
   region_name    = data.aws_region.current.region
   vpc_count      = length(data.aws_vpcs.existing.ids)
-  instance_count = length(data.aws_instances.existing.ids)
+#  instance_count = length(data.aws_instances.existing.ids)
   az_count  = length(data.aws_availability_zones.azs.names)
   az_a = "${local.region_name}a"
   az_b = "${local.region_name}b"
@@ -271,5 +255,5 @@ data "github_actions_registration_token" "spot_runner" {
 }
 
 output "spot_subnet" {
-  value = try(data.aws_subnets.public[0].ids, aws_subnet.Public_1D[0].id)
+  value = coalesce(join(",", local.subnet_list), aws_subnet.Public_1D[0].id, "PLEASE SET A NEW OR DIFFERENT var.spot_subnet_tag VALUE BY OVERRIDE TO GET A VALID SPOT SUBNET")
 }

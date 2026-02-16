@@ -10,7 +10,7 @@ data "aws_vpc" "main" {
 
 #Used by boto3 once there is a public IP
 data "aws_subnets" "public" {
- count = length(data.aws_vpcs.existing.ids) > 0 ? 1 : 0
+# count = length(data.aws_vpcs.existing.ids) > 0 ? 1 : 0
   filter {
     name   = "vpc-id"
     values = [data.aws_vpc.main.id] 
@@ -23,6 +23,11 @@ data "aws_subnets" "public" {
   ]
 }
 
+data "aws_subnet" "public_details" {
+  for_each = toset(data.aws_subnets.public.ids)
+  id       = each.value
+}
+
 data "aws_ssm_parameter" "gh_webhook_secret" {
       name = "gh_webhook_secret"
       with_decryption = true
@@ -31,16 +36,12 @@ data "aws_ssm_parameter" "gh_webhook_secret" {
 # In hopes of lowest spot price, AZ is the last subnet in VPC, 
 # which is public by tf plan
 locals {
-  spot_subnet = tostring(try(join(", ", data.aws_subnets.public[0].ids), aws_subnet.Public_1D[0].id))
+  subnet_list = [for s in data.aws_subnet.public_details : s.id]
+    spot_subnet = coalesce(join(",", local.subnet_list), aws_subnet.Public_1D[0].id, "PLEASE SET A NEW OR DIFFERENT var.spot_subnet_tag VALUE BY OVERRIDE TO GET A VALID SPOT SUBNET")
   depends_on = [
     local.vpc_id
   ]
 }
-
-#output "spot_public_subnet_id" {
-#  # Get the ID of the first subnet in the list
-#  value = local.public_subnet_ids_list[0]
-#}
 
 resource "local_file" "lambda_handler" {
   filename = "lambda_handler.py"
@@ -450,21 +451,6 @@ resource "aws_lambda_permission" "allow_public_access" {
   # The function_url_auth_type condition is crucial for public access
   function_url_auth_type = "NONE"
 }
-## Due to multi-region support, we need to import AWS global resources, such as policy
-#import {
-#  to = aws_iam_policy.ec2_describe_policy
-#  id = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:policy/lambda_ec2_describe_policy"
-#}
-
-#import {
-#  to = aws_iam_policy.ec2_run_policy
-#  id = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:policy/lambda_ec2_run_policy"
-#}
-
-#import {
-#  to = aws_iam_role.lambda_execution_role
-#  id = "lambda_execution_role"
-#}
 
 # Optional: Output the function name
 output "lambda_function_name" {
