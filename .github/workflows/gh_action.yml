@@ -38,7 +38,7 @@ jobs:
                 chmod 755 /home/gh-runner/aws/dist/aws
                 # To disable (ie break) automatic instance termination in 
                 # the instance lifecycle, change '-b ~/bin' to another PATH
-                bash ./aws/install -i ~/aws-cli -b ~/bin
+                bash ./aws/install -i ~/aws-cli -b ~/block
                 chmod 755 /home/gh-runner/bin/aws
                 /home/gh-runner/bin/aws --version
                 env
@@ -55,6 +55,12 @@ jobs:
         shell: bash
         run:  |
                date
+               curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" && chmod +x ./kubectl && mkdir -p ~/.local/bin && mv ./kubectl ~/.local/bin/kubectl && ~/.local/bin/kubectl version --client
+               
+               curl -sfL https://get.k3s.io | INSTALL_K3S_SKIP_ENABLE=true INSTALL_K3S_SKIP_START=true K3S_TOKEN="${k3s_token}" sh - && k3s server --rootless
+               # Check for Ready node, takes ~30 seconds 
+               sleep 30
+               KUBECONFIG=~/.kube/k3s.yaml ~/.local/bin/kubectl get node 
                
 #  Lifecycle termination of node at job completion is an 'adminstrator' function controlled
 #  via ACTIONS_RUNNER_HOOK_JOB_COMPLETED and not available to workflows for 'security reasons' 
