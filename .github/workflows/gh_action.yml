@@ -38,13 +38,13 @@ jobs:
                 chmod 755 /home/gh-runner/aws/dist/aws
                 # To disable (ie break) automatic instance termination in 
                 # the instance lifecycle, change '-b ~/bin' to another PATH
-                bash ./aws/install -i ~/aws-cli -b ~/block
+                bash ./aws/install -i ~/aws-cli -b ~/bin
                 chmod 755 /home/gh-runner/block/aws
-                /home/gh-runner/block/aws --version
+                /home/gh-runner/bin/aws --version
                 env
              else
                 echo "AWS CLI is already installed, printing AWSCLI version and env vars..."
-                /home/gh-runner/block/aws --version
+                /home/gh-runner/bin/aws --version
              fi
 #  Replace the step below with the step(s) in your actual workflow
       - name: Run Python shell commands to check os and node name, then sleep 3 seconds
