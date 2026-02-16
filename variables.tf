@@ -55,6 +55,12 @@ description = "Maximum number of running instances allowed by lambda_handler. Ke
   default     = "10"
 }
 
+variable "min_instances" {
+description = "Manimum number of running instances allowed by lambda_handler. Keep high if terminating instances at completion"
+  type        = string
+  default     = "1"
+}
+
 variable "repo_name" {
   description = "Change below to push/pull from your repo"
   type        = string

@@ -257,3 +257,7 @@ data "github_actions_registration_token" "spot_runner" {
 output "spot_subnet" {
   value = coalesce(join(",", local.subnet_list), aws_subnet.Public_1D[0].id, "PLEASE SET A NEW OR DIFFERENT var.spot_subnet_tag VALUE BY OVERRIDE TO GET A VALID SPOT SUBNET")
 }
+output "other_values" {
+  value = "${aws_subnet.Public_1D[0].id}, ${var.aws_subnet_tag}, ${var.volume_size}, ${var.spot_market}"
+}
+
