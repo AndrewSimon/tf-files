@@ -61,7 +61,7 @@ jobs:
                IP=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" 169.254.169.254/latest/meta-data/public-ipv4)
                echo "Configuring Kubernetes access to IP address $IP"
                curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" && chmod +x ./kubectl && sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
-               curl -sfL https://get.k3s.io | sh - server --tls-san $IP
+               curl -sfL https://get.k3s.io | sh -s - server --tls-san $IP
                sudo systemctl start k3s
                # Check for Ready node, takes ~30 seconds 
                sleep 30
