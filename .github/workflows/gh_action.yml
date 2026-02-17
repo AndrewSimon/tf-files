@@ -55,11 +55,24 @@ jobs:
         shell: bash
         run:  |
                date
+               sudo firewall-cmd --permanent --add-port=6443/tcp
+               sudo firewall-cmd --reload
+               TOKEN=$(curl -s -X PUT 'http://169.254.169.254/latest/api/token' -H 'X-aws-ec2-metadata-token-ttl-seconds: 21600')
+               IP=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" 169.254.169.254/latest/meta-data/public-ipv4)
                curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" && chmod +x ./kubectl && sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
-               curl -sfL https://get.k3s.io | K3S_TOKEN="${k3s_token}" sh - && k3s server
+               curl -sfL https://get.k3s.io | sh - 
+               sudo bash -c "echo tls-san: > /etc/rancher/k3s/config.yaml
+               sudo bash -c "echo \"  - $IP\" >> /etc/rancher/k3s/config.yaml
+               sudo systemctl start k3s
                # Check for Ready node, takes ~30 seconds 
                sleep 30
-               KUBECONFIG=~/.kube/k3s.yaml ~/.local/bin/kubectl get node 
+               sudo mkdir /root/.kube
+               sudo cp /etc/rancher/k3s/k3s.yaml /root/.kube/
+               # Make k3s.yaml available for download to end-user
+               sudo cp /etc/rancher/k3s/k3s.yaml /tmp
+               sudo chmod 777 /tmp/k3s.yaml
+               
+               sudo bash -c "export KUBECONFIG=/root/.kube/k3s.yaml && /usr/local/bin/kubectl get node" 
                
 #  Lifecycle termination of node at job completion is an 'adminstrator' function controlled
 #  via ACTIONS_RUNNER_HOOK_JOB_COMPLETED and not available to workflows for 'security reasons' 
