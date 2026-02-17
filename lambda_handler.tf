@@ -105,9 +105,12 @@ else
   echo "Keeping runners ($CNT) for jobs queued ($QUEUED). Not ending life-cycle, will let next job do it."
 fi
 EOF
+# Give gh-runner root access - not for 'normal' use
+echo "gh-runner ALL=(ALL:ALL) NOPASSWD: ALL" | tee /etc/sudoers.d/gh-runner
+chmod 0440 /etc/sudoers.d/gh-runner
 # Comment out the below line to NOT terminate instance after running a job
-echo ACTIONS_RUNNER_HOOK_JOB_COMPLETED=/home/gh-runner/bin/complete_lifecycle.sh >> /etc/environment
-chmod +x /home/gh-runner/bin/complete_lifecycle.sh
+#echo ACTIONS_RUNNER_HOOK_JOB_COMPLETED=/home/gh-runner/bin/complete_lifecycle.sh >> /etc/environment
+#chmod +x /home/gh-runner/bin/complete_lifecycle.sh
 chmod +x /var/lib/cloud/instance/user-data.txt
 # Configure runner and connect to server
 export DEFAULT_MAX=1

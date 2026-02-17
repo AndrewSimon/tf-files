@@ -55,8 +55,7 @@ jobs:
         shell: bash
         run:  |
                date
-               curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" && chmod +x ./kubectl && mkdir -p ~/.local/bin && mv ./kubectl ~/.local/bin/kubectl && ~/.local/bin/kubectl version --client
-               
+               curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" && chmod +x ./kubectl && sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
                curl -sfL https://get.k3s.io | K3S_TOKEN="${k3s_token}" sh - && k3s server
                # Check for Ready node, takes ~30 seconds 
                sleep 30
