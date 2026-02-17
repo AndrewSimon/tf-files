@@ -59,10 +59,9 @@ jobs:
                sudo firewall-cmd --reload
                TOKEN=$(curl -s -X PUT 'http://169.254.169.254/latest/api/token' -H 'X-aws-ec2-metadata-token-ttl-seconds: 21600')
                IP=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" 169.254.169.254/latest/meta-data/public-ipv4)
+               echo "Configuring Kubernetes access to IP address $IP"
                curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" && chmod +x ./kubectl && sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
-               curl -sfL https://get.k3s.io | sh - 
-               sudo bash -c "echo tls-san: > /etc/rancher/k3s/config.yaml"
-               sudo bash -c "echo \"  - $IP\" >> /etc/rancher/k3s/config.yaml"
+               curl -sfL https://get.k3s.io | sh - server --tls-san $IP
                sudo systemctl start k3s
                # Check for Ready node, takes ~30 seconds 
                sleep 30
@@ -72,7 +71,7 @@ jobs:
                sudo cp /etc/rancher/k3s/k3s.yaml /tmp
                sudo chmod 777 /tmp/k3s.yaml
                sudo bash -c "/usr/local/bin/kubectl get node"
-               sudo bash -c "kubectl -n kube-system patch deploy metrics-server --type='json' -p '[{\"op\": \"add\", \"path\": \"/spec/template/spec/tolerations/-\", \"value\": {\"key\": \"CriticalAddonsOnly\", \"operator\": \"Exists\"}}]'"
+               sudo bash -c "/usr/local/bin/kubectl -n kube-system patch deploy metrics-server --type='json' -p '[{"op": "add", "path": "/spec/template/spec/tolerations/-", "value": {"key": "CriticalAddonsOnly", "operator": "Exists"}}]'"
                
                
                 
