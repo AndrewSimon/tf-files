@@ -79,6 +79,9 @@ jobs:
                curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-4
                chmod 700 get_helm.sh
                ./get_helm.sh || true
+               /usr/local/bin/helm repo add kubernetes-dashboard https://kubernetes.github.io/dashboard/
+# Deploy a Helm Release named "kubernetes-dashboard" using the kubernetes-dashboard chart
+               /usr/local/bin/helm upgrade --install kubernetes-dashboard kubernetes-dashboard/kubernetes-dashboard --create-namespace --namespace kubernetes-dashboard
                 
                
 #  Lifecycle termination of node at job completion is an 'adminstrator' function controlled
