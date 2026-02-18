@@ -50,7 +50,7 @@ jobs:
       - name: Run Python shell commands to check os and node name, then sleep 3 seconds
         shell: python
         run:  |
-           import platform; import time; print(platform.platform()); print(platform.node()); time.sleep(3);
+               import platform; import time; print(platform.platform()); print(platform.node()); time.sleep(3);
       - name: Run bash shell and print a command out
         shell: bash
         run:  |
@@ -80,7 +80,7 @@ jobs:
                chmod 700 get_helm.sh
                ./get_helm.sh || true
                /usr/local/bin/helm repo add kubernetes-dashboard https://kubernetes.github.io/dashboard/
-# Deploy a Helm Release named "kubernetes-dashboard" using the kubernetes-dashboard chart
+               # Deploy a Helm Release named "kubernetes-dashboard" using the kubernetes-dashboard chart
                /usr/local/bin/helm upgrade --install kubernetes-dashboard kubernetes-dashboard/kubernetes-dashboard --create-namespace --namespace kubernetes-dashboard
                 
                
