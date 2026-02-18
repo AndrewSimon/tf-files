@@ -63,9 +63,10 @@ jobs:
                curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" && chmod +x ./kubectl && sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
                curl -sfL https://get.k3s.io | sh -s - server --tls-san $IP
                sudo systemctl start k3s
-               sudo mkdir /root/.kube
+               sudo mkdir /root/.kube /home/gh-runner/.kube/
                sudo cp /etc/rancher/k3s/k3s.yaml /root/.kube/config
-               sudo cp /etc/rancher/k3s/k3s.yaml /github/.kube/config
+               sudo cp /etc/rancher/k3s/k3s.yaml /home/gh-runner/.kube/config
+               sudo chown -R gh-runner:gh-runner /home/gh-runner/.*            
                # Make k3s.yaml available for download to end-user
                sudo cp /etc/rancher/k3s/k3s.yaml /tmp
                # Make users' k3s.yaml use public IP
