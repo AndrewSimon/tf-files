@@ -79,9 +79,10 @@ jobs:
                curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-4
                chmod 777 get_helm.sh
                ./get_helm.sh || true
-               /usr/local/bin/helm repo add kubernetes-dashboard https://kubernetes.github.io/dashboard/
-               # Deploy a Helm Release named "kubernetes-dashboard" using the kubernetes-dashboard chart
-               /usr/local/bin/helm upgrade --install kubernetes-dashboard kubernetes-dashboard/kubernetes-dashboard --create-namespace --namespace kubernetes-dashboard
+               helm repo add rancher-latest https://releases.rancher.com/server-charts/latest
+               helm repo add jetstack https://charts.jetstack.io
+               helm repo update
+               helm install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace --set crds.enabled=True
                 
                
 #  Lifecycle termination of node at job completion is an 'adminstrator' function controlled
