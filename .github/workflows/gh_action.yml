@@ -79,10 +79,10 @@ jobs:
                [ ! -f "/usr/local/bin/helm" ] && curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-4
                chmod 777 get_helm.sh
                [ ! -f "/usr/local/bin/helm" ] && ./get_helm.sh
-               helm repo add rancher-latest https://releases.rancher.com/server-charts/latest
-               helm repo add jetstack https://charts.jetstack.io
-               helm repo update
-               helm install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace --set crds.enabled=True
+               /usr/local/bin/helm repo add rancher-latest https://releases.rancher.com/server-charts/latest
+               /usr/local/bin/helm repo add jetstack https://charts.jetstack.io
+               /usr/local/bin/helm repo update
+               /usr/local/bin/helm install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace --set crds.enabled=True
                 
                
 #  Lifecycle termination of node at job completion is an 'adminstrator' function controlled
