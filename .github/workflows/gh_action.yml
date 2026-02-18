@@ -82,7 +82,7 @@ jobs:
                /usr/local/bin/helm repo add rancher-latest https://releases.rancher.com/server-charts/latest
                /usr/local/bin/helm repo add jetstack https://charts.jetstack.io
                /usr/local/bin/helm repo update
-               /usr/local/bin/kubectl apply -f -n cert-manager https://github.com/cert-manager/cert-manager/releases/download/v1.19.3/cert-manager.crds.yaml
+               /usr/local/bin/kubectl apply -n cert-manager -f https://github.com/cert-manager/cert-manager/releases/download/v1.19.3/cert-manager.crds.yaml
                /usr/local/bin/helm upgrade --install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace --set crds.enabled=True
                
                # Inspect when done installing everything
