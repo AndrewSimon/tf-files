@@ -28,11 +28,6 @@ data "aws_subnet" "public_details" {
   id       = each.value
 }
 
-data "aws_ssm_parameter" "gh_webhook_secret" {
-      name = "gh_webhook_secret"
-      with_decryption = true
-}
-
 # In hopes of lowest spot price, AZ is the last subnet in VPC, 
 # which is public by tf plan
 locals {
