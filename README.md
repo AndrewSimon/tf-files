@@ -118,19 +118,15 @@ For terraform errors, make sure you run terraform init, first. Ensure the variab
 
 NoSuchEntity: The role with name lambda_execution_role cannot be found.  Do not change anything, just re-run terraform apply again.
 
-Kms, resource already exists. Usually happens with multi-region testing/use.  Manually delete your resource as it won't if from another region:
- terraform destroy -target=aws_iam_policy.kms_decrypt_policy
- 
- 
-
 For webhook errors and return codes:
 
 1. We couldn't deliver this payload: this usually means there is no capacity for your spot instances. But, wait a minute or two sometimes as the hook may have worked but AWS exceeded Github 10 second wait time to respond
 2. Timeout: this usually means there is no capacity for your spot instances. But, wait a minute or two as sometimes the hook worked but AWS exceeded Github 10 second wait time to respond
 3. Return code 200:  This means the webhook succeeded. Verify in the details that an instance was launched, otherwise it will give a count of already running instances. To increase the number of allowed runners to 10, for example, override with -var="max_instances=10"
 4. Return code 403: Permission denied. To permission the lambda function url manually: Go to Amazon AWS console lambda --> lambda functions --> SpotRunner --> Configuration --> Function URL -->  Edit (the updated policy shows automatically, do not type anything!) --> (scroll to bottom) Save. That's it!  Terraform (bug) does not permission this and therefore won't replace it.  The change exists until you run terraform destroy.  Without it, the lambda function url does not have permission to invoke lambda on Github's behalf. 
-5. Return code 502: run 'terraform taint aws_lambda_function.spot_runner', then run terraform apply
-6. Return code 401 - Invalid Signature: The webhook-secret does not match between the repository commit-hook and SSM.  Fix it in either SSM or the GH Webhook for that repo.  As a forged SSL from outside github.com will have been completely blocked from connecting to the lambda url, thus could not have sent lambda a webhook secret, it *must* be someone inside gitub.com domain who stumbled upon your Amazon lambda url, even though there is a 1 in 1.5e+54 chance of that happening (the chance of picking the right atom in Avagrado's number is *only* 1 in 6e+23), and sent you the wrong secret or worse, is trying to 'hack' you.  It is *much* more likely, though, that someone who has access to the webhook's repo where you are seeing this has updated the webhook secret without telling you.  Alternately, they have access to SSM and changed it there without telling you.  The rarity of hitting your lambda url is why the web secret is completely unnecessary; but for 'best practices', I waste your valuable (more so than a web secret) electrons verifying the signature for you, anyway. 
+5. Return code 500: Read the body of the error. If it is InvalidAMIID.NotFound.  Specify the correct AMI ID in variables.tf or use ami_id override option 
+6. Return code 502: Internal server error. This is a permission issue with lambda_execution_role usually from multi-region use. Run 'terraform destroy -target=aws_iam_role.lambda_execution_role', then run terraform apply.
+7. Return code 401 - Invalid Signature: The webhook-secret does not match between the repository commit-hook and SSM.  Fix it in either SSM or the GH Webhook for that repo.  As a forged SSL from outside github.com will have been completely blocked from connecting to the lambda url, thus could not have sent lambda a webhook secret, it *must* be someone inside gitub.com domain who stumbled upon your Amazon lambda url, even though there is a 1 in 1.5e+54 chance of that happening (the chance of picking the right atom in Avagrado's number is *only* 1 in 6e+23), and sent you the wrong secret or worse, is trying to 'hack' you.  It is *much* more likely, though, that someone who has access to the webhook's repo where you are seeing this has updated the webhook secret without telling you.  Alternately, they have access to SSM and changed it there without telling you.  The rarity of hitting your lambda url is why the web secret is completely unnecessary; but for 'best practices', I waste your valuable (more so than a web secret) electrons verifying the signature for you, anyway. 
 
 ## Maintainers
 
