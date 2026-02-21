@@ -22,6 +22,12 @@ data "aws_vpcs" "existing" {
   }
 }
 
+# We also use the webhook secret for the rancher admin password, when installed
+data "aws_ssm_parameter" "gh_webhook_secret" {
+      name = "gh_webhook_secret"
+      with_decryption = true
+}
+
 # Apply this first! terraform apply -target aws_vpc.test2
 resource "aws_vpc" "test2" {
   cidr_block = "192.168.10.0/24"
@@ -248,6 +254,13 @@ resource "github_actions_secret" "account_id" {
   repository      = "${local.repo}"
   secret_name     = "ACCOUNT_ID"
   plaintext_value = ""  # "${data.aws_caller_identity.current.account_id}" will store in GH
+}
+
+# Create a repository secret for Rancher (when using a workflow that installs it
+resource "github_actions_secret" "webhook_secret" {
+  repository      = "${local.repo}"
+  secret_name     = "WEBHOOK_SECRET_TOKEN"
+  plaintext_value = "${data.aws_ssm_parameter.gh_webhook_secret.value}"
 }
 
 data "github_actions_registration_token" "spot_runner" {
