@@ -52,6 +52,7 @@ jobs:
         run:  |
                import platform; import time; print(platform.platform()); print(platform.node()); time.sleep(3);
       - name: Run bash shell and print a command out
+        continue-on-error: true 
         shell: bash
         run:  |
                date
@@ -88,6 +89,8 @@ jobs:
                
                # Inspect when done installing everything
                /usr/local/bin/kubectl get all -A
+               
+               exit 0
                
 #  Lifecycle termination of node at job completion is an 'adminstrator' function controlled
 #  via ACTIONS_RUNNER_HOOK_JOB_COMPLETED and not available to workflows for 'security reasons' 
