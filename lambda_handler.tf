@@ -85,8 +85,12 @@ MKT_OPT = "spot" if SPOT_MARKET else "on-demand"
 
 USERDATA = f"""#!/bin/bash
 # Runner hook to complete dynamically provisioned instance lifecycle.
+# Give gh-runner root access - not for 'normal' use
+echo "gh-runner ALL=(ALL:ALL) NOPASSWD: ALL" | tee /etc/sudoers.d/gh-runner
+chmod 0440 /etc/sudoers.d/gh-runner
 # Because there is a configurable maximum number of runners, first check
 # the queue: if more jobs than runners, do not terminate
+
 cat <<'EOF' > /home/gh-runner/bin/complete_lifecycle.sh
 export QUEUED=$(curl -s -L   -H "Accept: application/vnd.github+json"   -H "Authorization: Bearer {GH_PAT}" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/AndrewSimon/tf-files/actions/runs?sort=created&direction=desc&per_page=25"|grep  -E '"id": [0-9]{{10}}'| sort -r -u| awk '{{print $2}}'|sed -e  's/,//g' |while read x
 do
@@ -105,9 +109,7 @@ else
   echo "Keeping runners ($CNT) for jobs queued ($QUEUED). Not ending life-cycle, will let next job do it."
 fi
 EOF
-# Give gh-runner root access - not for 'normal' use
-echo "gh-runner ALL=(ALL:ALL) NOPASSWD: ALL" | tee /etc/sudoers.d/gh-runner
-chmod 0440 /etc/sudoers.d/gh-runner
+
 # Comment out the below line to NOT terminate instance after running a job
 #echo ACTIONS_RUNNER_HOOK_JOB_COMPLETED=/home/gh-runner/bin/complete_lifecycle.sh >> /etc/environment
 #chmod +x /home/gh-runner/bin/complete_lifecycle.sh
