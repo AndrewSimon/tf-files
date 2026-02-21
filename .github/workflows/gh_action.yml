@@ -30,7 +30,7 @@ jobs:
 
       - name: Install Dependencies Required to Complete Dynamic Provisioning Lifecycle
         run: |
-             if ! command /home/gh-runner/bin/aws --version  &> /dev/null
+             if ! command /home/gh-runner/bin/aws --version 2>&1 /dev/null
              then
                 cd /home/gh-runner/          
                 curl  -o awscliv2.zip https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
