@@ -60,6 +60,7 @@ jobs:
                sudo firewall-cmd --reload
                TOKEN=$(curl -s -X PUT 'http://169.254.169.254/latest/api/token' -H 'X-aws-ec2-metadata-token-ttl-seconds: 21600')
                IP=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" 169.254.169.254/latest/meta-data/public-ipv4)
+               FQDN=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" 169.254.169.254/latest/meta-data/public-hostname)
                echo "Configuring Kubernetes access to IP address $IP"
                curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" && chmod +x ./kubectl && sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
                curl -sfL https://get.k3s.io | sh -s - server --tls-san $IP
@@ -86,8 +87,9 @@ jobs:
                /usr/local/bin/kubectl apply -n cert-manager -f https://github.com/cert-manager/cert-manager/releases/download/v1.19.3/cert-manager.crds.yaml
                # Skip crd install from Hel        
                /usr/local/bin/helm upgrade --install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace --set crds.enabled=False
-               
+               /usr/local/bin/helm install rancher rancher-stable/rancher --namespace cattle-system --create-namespace --set hostname=$FQDN --set bootstrapPassword= ${{ secrets.WEBHOOK_SECRET_TOKEN }}
                # Inspect when done installing everything
+               
                /usr/local/bin/kubectl get all -A
                
                exit 0
