@@ -30,19 +30,16 @@ jobs:
 
       - name: Install Dependencies Required to Complete Dynamic Provisioning Lifecycle
         run: |
-             if [ ! -f "/home/gh-runner/bin/aws" ]; then
                 cd /home/gh-runner/          
-                curl  -o awscliv2.zip https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
-                python -m zipfile -e awscliv2.zip .
+                [ ! -e "/home/gh-runner/bin/aws" ] && curl  -o awscliv2.zip https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
+                [ ! -e "/home/gh-runner/bin/aws" ] && python -m zipfile -e awscliv2.zip .
                 chmod 755 /home/gh-runner/aws/dist/aws
                 # To disable (ie break) automatic instance termination in 
                 # the instance lifecycle, change '-b ~/bin' to another PATH
-                bash ./aws/install -i ~/aws-cli -b ~/bin
+                [ ! -e "/home/gh-runner/bin/aws" ] && bash ./aws/install -i ~/aws-cli -b ~/bin
                 chmod 755 /home/gh-runner/bin/aws
-                /home/gh-runner/bin/aws --version
-             else
-                /home/gh-runner/bin/aws --version
-             fi
+                [ -e "/home/gh-runner/bin/aws" ] && /home/gh-runner/bin/aws --version
+
 #  Replace the step below with the step(s) in your actual workflow
       - name: Run Python shell commands to check os and node name, then sleep 3 seconds
         shell: python
