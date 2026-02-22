@@ -30,7 +30,7 @@ jobs:
 
       - name: Install Dependencies Required to Complete Dynamic Provisioning Lifecycle
         run: |
-             if ! command /home/gh-runner/bin/aws --version 2>&1 /dev/null
+             if [ ! -f "/home/gh-runner/bin/aws" ]; then
              then
                 cd /home/gh-runner/          
                 curl  -o awscliv2.zip https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
@@ -61,7 +61,7 @@ jobs:
                TOKEN=$(curl -s -X PUT 'http://169.254.169.254/latest/api/token' -H 'X-aws-ec2-metadata-token-ttl-seconds: 21600')
                IP=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" 169.254.169.254/latest/meta-data/public-ipv4)
                FQDN=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" 169.254.169.254/latest/meta-data/public-hostname)
-               echo "Configuring Kubernetes access to IP address $IP"
+               echo "Configuring Kubernetes access to IP address $IP with HTTPS access via $FQDN"
                curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" && chmod +x ./kubectl && sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
                curl -sfL https://get.k3s.io | sh -s - server --tls-san $IP
                sudo systemctl start k3s
