@@ -77,15 +77,20 @@ jobs:
                [ ! -f "/usr/local/bin/helm" ] && curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-4
                chmod 777 get_helm.sh
                [ ! -f "/usr/local/bin/helm" ] && ./get_helm.sh ||true
-               /usr/local/bin/helm repo add rancher-latest https://releases.rancher.com/server-charts/latest
-               /usr/local/bin/helm repo add jetstack https://charts.jetstack.io
-               /usr/local/bin/helm repo update
-               /usr/local/bin/kubectl apply -n cert-manager -f https://github.com/cert-manager/cert-manager/releases/download/v1.19.3/cert-manager.crds.yaml
+
+
+               ## Rancher install, which is unsupported
+               #/usr/local/bin/helm repo add rancher-latest https://releases.rancher.com/server-charts/latest
+               #/usr/local/bin/helm repo add jetstack https://charts.jetstack.io
+               #/usr/local/bin/helm repo update
+               #/usr/local/bin/kubectl apply -n cert-manager -f https://github.com/cert-manager/cert-manager/releases/download/v1.19.3/cert-manager.crds.yaml
                # Skip crd install from Hel        
-               /usr/local/bin/helm upgrade --install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace --set installCRDs=false
-               /usr/local/bin/helm install rancher rancher-latest/rancher --namespace cattle-system --create-namespace --set hostname=$FQDN --set bootstrapPassword=${{ secrets.WEBHOOK_SECRET_TOKEN }}
+               #/usr/local/bin/helm upgrade --install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace --set installCRDs=false
+               #/usr/local/bin/helm install rancher rancher-latest/rancher --namespace cattle-system --create-namespace --set hostname=$FQDN --set bootstrapPassword=${{ secrets.WEBHOOK_SECRET_TOKEN }}
                # Inspect when done installing everything
                
+
+
                /usr/local/bin/kubectl get all -A
                
                exit 0
