@@ -75,6 +75,7 @@ REPO_NAME = '${var.repo_name}'
 VOL_SIZE = ${var.volume_size} #Integer
 SPOT_MARKET = ${var.spot_market} #Boolean
 MAX = ${var.max_instances} #Integer
+VOLUME_TYPE = 'standard'
 
 MKT_OPT = "spot" if SPOT_MARKET else "on-demand"
 
@@ -214,7 +215,7 @@ def lambda_handler(event, context):
         'Ebs': {
             'DeleteOnTermination': True, # Explicitly ensures the EBS volume is deleted
             'VolumeSize': VOL_SIZE, # Size in GiB
-            'VolumeType': 'gp3',
+            'VolumeType': VOLUME_TYPE,
           },
         },
       ],
