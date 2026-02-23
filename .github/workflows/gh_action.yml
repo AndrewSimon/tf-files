@@ -64,7 +64,7 @@ jobs:
                sudo mkdir /root/.kube /home/gh-runner/.kube/ || true
                sudo cp /etc/rancher/k3s/k3s.yaml /root/.kube/config
                sudo cp /etc/rancher/k3s/k3s.yaml /home/gh-runner/.kube/config
-               sudo chown -R gh-runner:gh-runner /home/gh-runner/.*            
+               sudo chown -R gh-runner:gh-runner /home/gh-runner/.kube
                # Make k3s.yaml available for download to end-user
                sudo cp /etc/rancher/k3s/k3s.yaml /tmp
                # Make users' k3s.yaml use public IP
