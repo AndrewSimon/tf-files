@@ -39,7 +39,7 @@ https://aws.amazon.com/marketplace/pp/prodview-zsmcixdrlp2ti
 3. Fill out the form, selecting hourly or yearly, etc.
 4. Click Subscribe button
 
-Once subscribed, you can get the AMI ID you will need for variables.tf or -var"_ami_id=<ami-i>" override:
+Once subscribed, you can get the AMI ID you will need for variables.tf or -var="ami_id=<ami-i>" override:
 1. From aws console, navigate to EC2 Dashboard --> Launch Instances button (below the Resources list box)
 2. In 'Application and OS Images (Amazon Machine Image)' list box, selec the 'Browse more AMI' option box
 3. Click AWS Marketplace AMIs, then--> Click 'Search for an AMI', enter: *runner by tlc*, hit enter
@@ -134,7 +134,7 @@ AndrewSimon (CEO/President of Technology Leadership, LLC)
 
 Written: 2016
 
-Modified: 1/2026 
+Modified: 2/2026 
 
 
 ### Copyright and license
