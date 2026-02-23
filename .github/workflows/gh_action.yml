@@ -51,6 +51,8 @@ jobs:
         run:  |
                date
                sudo firewall-cmd --permanent --add-port=6443/tcp
+               sudo firewall-cmd --permanent --add-port=443/tcp
+               sudo firewall-cmd --permanent --add-port=80/tcp
                sudo firewall-cmd --reload
                TOKEN=$(curl -s -X PUT 'http://169.254.169.254/latest/api/token' -H 'X-aws-ec2-metadata-token-ttl-seconds: 21600')
                IP=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" 169.254.169.254/latest/meta-data/public-ipv4)
