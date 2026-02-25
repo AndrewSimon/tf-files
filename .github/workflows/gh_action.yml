@@ -102,8 +102,8 @@ jobs:
                /usr/local/bin/helm delete k8s-app -n kubernetes-dashboard  || true
                /usr/local/bin/helm upgrade --install k8s-app kubernetes-dashboard/ --create-namespace -n kubernetes-dashboard  
                sleep 2
-               /usr/local/bin/kubectl create clusterrolebinding kubernetes-dashboard-cluster-admin --clusterrole=cluster-admin --serviceaccount=kubernetes-dashboard:kubernetes-dashboard       
-               /usr/local/bin/kubectl -n kubernetes-dashboard create token kubernetes-dashboard
+               /usr/local/bin/kubectl create clusterrolebinding kubernetes-dashboard-cluster-admin --clusterrole=cluster-admin --serviceaccount=kubernetes-dashboard:kubernetes-dashboard || true
+               /usr/local/bin/kubectl -n kubernetes-dashboard create token kubernetes-dashboard || true
       - name: Generate YAML Output
         id: create_yaml
         run: |
