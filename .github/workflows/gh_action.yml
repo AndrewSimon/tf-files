@@ -142,7 +142,7 @@ jobs:
           EOF
           )
           echo "$YAML_CONTENT" >> ./ingress.yaml
-          /usr/local/bin/kubectl -n kubernetes-desktop apply -f ./ingress.yaml
+          /usr/local/bin/kubectl -n kubernetes-dashboard apply -f ./ingress.yaml
          
 #  Lifecycle termination of node at job completion is an 'adminstrator' function controlled
 #  via ACTIONS_RUNNER_HOOK_JOB_COMPLETED and not available to workflows for 'security reasons' 
