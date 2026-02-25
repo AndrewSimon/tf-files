@@ -74,7 +74,7 @@ jobs:
                # Ready node takes ~30 seconds 
                sleep 15
                sudo bash -c "/usr/local/bin/kubectl get node"
-               sudo bash -c "/usr/local/bin/kubectl -n kube-system patch deploy metrics-server --type='json' -p '[{"op": "add", "path": "/spec/template/spec/tolerations/-", "value": {"key": "CriticalAddonsOnly", "operator": "Exists"}}]'"
+              # sudo bash -c "/usr/local/bin/kubectl -n kube-system patch deploy metrics-server --type='json' -p '[{"op": "add", "path": "/spec/template/spec/tolerations/-", "value": {"key": "CriticalAddonsOnly", "operator": "Exists"}}]'"
                [ ! -f "/usr/local/bin/helm" ] && curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-4
                chmod 777 get_helm.sh
                [ ! -f "/usr/local/bin/helm" ] && ./get_helm.sh ||true
