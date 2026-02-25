@@ -52,7 +52,7 @@ jobs:
                date
                sudo firewall-cmd --permanent --add-port=6443/tcp
                sudo firewall-cmd --permanent --add-port=443/tcp
-               sudo firewall-cmd --permanent --add-port=80/tcp
+               sudo firewall-cmd --permanent --add-port=8080/tcp
                sudo firewall-cmd --reload
                TOKEN=$(curl -s -X PUT 'http://169.254.169.254/latest/api/token' -H 'X-aws-ec2-metadata-token-ttl-seconds: 21600')
                IP=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" 169.254.169.254/latest/meta-data/public-ipv4)
@@ -78,22 +78,54 @@ jobs:
                chmod 777 get_helm.sh
                [ ! -f "/usr/local/bin/helm" ] && ./get_helm.sh ||true
 
-
-               ## Rancher install, which is unsupported
-               #/usr/local/bin/helm repo add rancher-latest https://releases.rancher.com/server-charts/latest
-               #/usr/local/bin/helm repo add jetstack https://charts.jetstack.io
-               #/usr/local/bin/helm repo update
-               #/usr/local/bin/kubectl apply -n cert-manager -f https://github.com/cert-manager/cert-manager/releases/download/v1.19.3/cert-manager.crds.yaml
-               # Skip crd install from Hel        
-               #/usr/local/bin/helm upgrade --install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace --set installCRDs=false
-               #/usr/local/bin/helm install rancher rancher-latest/rancher --namespace cattle-system --create-namespace --set hostname=$FQDN --set bootstrapPassword=${{ secrets.WEBHOOK_SECRET_TOKEN }}
-               # Inspect when done installing everything
+      - name: Checkout k8s app
+        uses: actions/checkout@v4
+        with:
+          repository: AndrewSimon/kubernetes-dashboard
+          path: kubernetes-dashboard
+          token: ${{ secrets.GH_PAT }} 
+          
+      - name: Run Helm kubernetes-dashboard install
+        continue-on-error: true      
+        shell: bash
+        run:  |
+               # Clean up k3s metrics-server as we'll use k8s-app's instead
+               /user/local/bin/kubectl delete sa metrics-server -n kube-system
+               /user/local/bin/kubectl delete ClusterRole system:aggregated-metrics-reader -n kube-system       
+               /user/local/bin/kubectl delete ClusterRole system:metrics-server -n kube-system
+               /user/local/bin/kubectl delete ClusterRoleBinding metrics-server:system:auth-delegator -n kube-system
+               /user/local/bin/kubectl delete ClusterRoleBinding system:metrics-server
+               /user/local/bin/kubectl delete RoleBinding metrics-server-auth-reader -n kube-system
+               /user/local/bin/kubectl delete svc metrics-server -n kube-system
+               /user/local/bin/kubectl delete APIService v1beta1.metrics.k8s.io
+               /user/local/bin/kubectl delete deploy -n kube-system metrics-server
+               TOKEN=$(curl -s -X PUT 'http://169.254.169.254/latest/api/token' -H 'X-aws-ec2-metadata-token-ttl-seconds: 21600')
+               export FQDN=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" 169.254.169.254/latest/meta-data/public-hostname)
+               helm upgrade --install k8s-app kubernetes-dashboard/ --create-namespace -n kubernetes-dashboard  
+               sleep 2
+               /usr/local/bin/kubectl create clusterrolebinding kubernetes-dashboard-cluster-admin --clusterrole=cluster-admin --serviceaccount=kubernetes-dashboard:kubernetes-dashboard       
+               /usr/local/bin/kubectl -n kubernetes-dashboard create token kubernetes-dashboard
                
+               kubectl apply -f - <<EOF
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: k8s-app-ingress
+  annotations:
+    kubernetes.io/ingress.class: "traefik" #
+spec:
+  rules:
+    - host: $FQDN
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: kubernetes-dashboard
+                port:
+                  number: 443
+EOF
 
-
-               /usr/local/bin/kubectl get all -A
-               
-               exit 0
-               
 #  Lifecycle termination of node at job completion is an 'adminstrator' function controlled
 #  via ACTIONS_RUNNER_HOOK_JOB_COMPLETED and not available to workflows for 'security reasons' 
