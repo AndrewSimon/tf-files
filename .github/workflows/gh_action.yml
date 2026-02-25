@@ -84,26 +84,40 @@ jobs:
           repository: AndrewSimon/kubernetes-dashboard
           path: kubernetes-dashboard
           token: ${{ secrets.GH_PAT }} 
-          
-      - name: Run Helm kubernetes-dashboard install
+
+      - name: Run Helm Headlamp install
         continue-on-error: true      
         shell: bash
         run:  |
-               # Clean up k3s metrics-server as we'll use k8s-app's instead
-               /usr/local/bin/kubectl delete sa metrics-server -n kube-system || true
-               /usr/local/bin/kubectl delete ClusterRole system:aggregated-metrics-reader -n kube-system || true       
-               /usr/local/bin/kubectl delete ClusterRole system:metrics-server -n kube-system || true
-               /usr/local/bin/kubectl delete ClusterRoleBinding metrics-server:system:auth-delegator -n kube-system || true
-               /usr/local/bin/kubectl delete ClusterRoleBinding system:metrics-server || true
-               /usr/local/bin/kubectl delete RoleBinding metrics-server-auth-reader -n kube-system || true
-               /usr/local/bin/kubectl delete svc metrics-server -n kube-system || true
-               /usr/local/bin/kubectl delete APIService v1beta1.metrics.k8s.io || true
-               /usr/local/bin/kubectl delete deploy -n kube-system metrics-server || true
-               /usr/local/bin/helm delete k8s-app -n kubernetes-dashboard  || true
-               /usr/local/bin/helm upgrade --install k8s-app kubernetes-dashboard/ --create-namespace -n kubernetes-dashboard  
-               sleep 2
-               /usr/local/bin/kubectl create clusterrolebinding kubernetes-dashboard-cluster-admin --clusterrole=cluster-admin --serviceaccount=kubernetes-dashboard:kubernetes-dashboard || true
-               /usr/local/bin/kubectl -n kubernetes-dashboard create token kubernetes-dashboard || true
+               TOKEN=$(curl -s -X PUT 'http://169.254.169.254/latest/api/token' -H 'X-aws-ec2-metadata-token-ttl-seconds: 21600')
+               export FQDN=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" 169.254.169.254/latest/meta-data/public-hostname)    
+ 
+               /usr/local/bin/helm repo add headlamp https://kubernetes-sigs.github.io/headlamp/ 
+               /usr/local/bin/helm repo update
+               /usr/local/bin/helm install headlamp headlamp/headlamp --namespace kube-system --set service.type=NodePort --set service.port=80
+               /usr/local/bin/kubectl patch svc headlamp -n kube-system --type='json' -p='[{"op": "replace", "path": "/spec/ports/0/nodePort", "value": 30443}]'
+               echo "Copy the key below, using a browser navigate to https://$FQDN:30443, and paste it into token text box"
+               echo ""
+               /usr/local/bin/kubectl create token my-headlamp --namespace kube-system
+#      - name: Run Helm kubernetes-dashboard install
+#        continue-on-error: true      
+#        shell: bash
+#        run:  |
+#               # Clean up k3s metrics-server as we'll use k8s-app's instead
+#               /usr/local/bin/kubectl delete sa metrics-server -n kube-system || true
+#               /usr/local/bin/kubectl delete ClusterRole system:aggregated-metrics-reader -n kube-system || true       
+#               /usr/local/bin/kubectl delete ClusterRole system:metrics-server -n kube-system || true
+#               /usr/local/bin/kubectl delete ClusterRoleBinding metrics-server:system:auth-delegator -n kube-system || true
+#               /usr/local/bin/kubectl delete ClusterRoleBinding system:metrics-server || true
+#               /usr/local/bin/kubectl delete RoleBinding metrics-server-auth-reader -n kube-system || true
+#               /usr/local/bin/kubectl delete svc metrics-server -n kube-system || true
+#               /usr/local/bin/kubectl delete APIService v1beta1.metrics.k8s.io || true
+#               /usr/local/bin/kubectl delete deploy -n kube-system metrics-server || true
+#               /usr/local/bin/helm delete k8s-app -n kubernetes-dashboard  || true
+#               /usr/local/bin/helm upgrade --install k8s-app kubernetes-dashboard/ --create-namespace -n kubernetes-dashboard  
+#               sleep 2
+#               /usr/local/bin/kubectl create clusterrolebinding kubernetes-dashboard-cluster-admin --clusterrole=cluster-admin --serviceaccount=kubernetes-dashboard:kubernetes-dashboard || true
+#               /usr/local/bin/kubectl -n kubernetes-dashboard create token kubernetes-dashboard || true
       - name: Generate YAML Output
         id: create_yaml
         run: |
@@ -132,7 +146,7 @@ jobs:
           EOF
           )
           echo "$YAML_CONTENT" >> ./ingress.yaml
-          /usr/local/bin/kubectl -n kubernetes-dashboard apply -f ./ingress.yaml
+#          /usr/local/bin/kubectl -n kubernetes-dashboard apply -f ./ingress.yaml
          
 #  Lifecycle termination of node at job completion is an 'adminstrator' function controlled
 #  via ACTIONS_RUNNER_HOOK_JOB_COMPLETED and not available to workflows for 'security reasons' 
