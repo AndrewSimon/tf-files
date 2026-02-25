@@ -141,7 +141,7 @@ jobs:
                             number: 443
           EOF
           )
-          echo "$YAML_CONTENT" >>ingress.yaml
+          echo "$YAML_CONTENT" >> ./ingress.yaml
           /usr/local/bin/kubectl -n kubernetes-desktop apply -f ./ingress.yaml
          
 #  Lifecycle termination of node at job completion is an 'adminstrator' function controlled
