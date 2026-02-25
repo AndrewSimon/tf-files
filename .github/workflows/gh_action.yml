@@ -90,15 +90,15 @@ jobs:
         shell: bash
         run:  |
                # Clean up k3s metrics-server as we'll use k8s-app's instead
-               /usr/local/bin/kubectl delete sa metrics-server -n kube-system
-               /user/local/bin/kubectl delete ClusterRole system:aggregated-metrics-reader -n kube-system       
-               /user/local/bin/kubectl delete ClusterRole system:metrics-server -n kube-system
-               /user/local/bin/kubectl delete ClusterRoleBinding metrics-server:system:auth-delegator -n kube-system
-               /user/local/bin/kubectl delete ClusterRoleBinding system:metrics-server
-               /user/local/bin/kubectl delete RoleBinding metrics-server-auth-reader -n kube-system
-               /user/local/bin/kubectl delete svc metrics-server -n kube-system
-               /user/local/bin/kubectl delete APIService v1beta1.metrics.k8s.io
-               /user/local/bin/kubectl delete deploy -n kube-system metrics-server || true
+               /usr/local/bin/kubectl delete sa metrics-server -n kube-system || true
+               /usr/local/bin/kubectl delete ClusterRole system:aggregated-metrics-reader -n kube-system || true       
+               /usr/local/bin/kubectl delete ClusterRole system:metrics-server -n kube-system || true
+               /usr/local/bin/kubectl delete ClusterRoleBinding metrics-server:system:auth-delegator -n kube-system || true
+               /usr/local/bin/kubectl delete ClusterRoleBinding system:metrics-server || true
+               /usr/local/bin/kubectl delete RoleBinding metrics-server-auth-reader -n kube-system || true
+               /usr/local/bin/kubectl delete svc metrics-server -n kube-system || true
+               /usr/local/bin/kubectl delete APIService v1beta1.metrics.k8s.io || true
+               /usr/local/bin/kubectl delete deploy -n kube-system metrics-server || true
                helm upgrade --install k8s-app kubernetes-dashboard/ --create-namespace -n kubernetes-dashboard  
                sleep 2
                /usr/local/bin/kubectl create clusterrolebinding kubernetes-dashboard-cluster-admin --clusterrole=cluster-admin --serviceaccount=kubernetes-dashboard:kubernetes-dashboard       
