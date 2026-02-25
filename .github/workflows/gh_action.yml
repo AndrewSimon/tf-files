@@ -116,27 +116,35 @@ jobs:
                sleep 2
                /usr/local/bin/kubectl create clusterrolebinding kubernetes-dashboard-cluster-admin --clusterrole=cluster-admin --serviceaccount=kubernetes-dashboard:kubernetes-dashboard       
                /usr/local/bin/kubectl -n kubernetes-dashboard create token kubernetes-dashboard
-               
+      - name: Generate YAML Output
+        id: create_yaml
+        run: |
+          # Define the YAML content using a heredoc
+          YAML_CONTENT=$(cat <<-'EOF'
+          apiVersion: networking.k8s.io/v1
+          kind: Ingress
+          metadata:
+            name: k8s-app-ingress
+            namespace: kubernetes-dashboard
+            annotations:
+              kubernetes.io/ingress.class: "traefik" 
+          spec:
+            rules:
+              - host: $FQDN
+                http:
+                  paths:
+                    - path: /
+                      pathType: Prefix
+                      backend:
+                        service:
+                          name: kubernetes-dashboard
+                          port:
+                            number: 443
+          EOF
+          )
+          echo "$YAML_CONTENT" >>ingress.yaml
+          /usr/local/bin/kubectl -n kubernetes-desktop -f ./ingress.yaml
+         
 
-               cat <<'EOF' > script.sh
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: k8s-app-ingress
-  annotations:
-    kubernetes.io/ingress.class: "traefik" #
-spec:
-  rules:
-    - host: $FQDN
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: kubernetes-dashboard
-                port:
-                  number: 443
-                  EOF
 #  Lifecycle termination of node at job completion is an 'adminstrator' function controlled
 #  via ACTIONS_RUNNER_HOOK_JOB_COMPLETED and not available to workflows for 'security reasons' 
