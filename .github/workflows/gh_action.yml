@@ -99,7 +99,7 @@ jobs:
                /usr/local/bin/kubectl delete svc metrics-server -n kube-system || true
                /usr/local/bin/kubectl delete APIService v1beta1.metrics.k8s.io || true
                /usr/local/bin/kubectl delete deploy -n kube-system metrics-server || true
-               helm upgrade --install k8s-app kubernetes-dashboard/ --create-namespace -n kubernetes-dashboard  
+               /usr/local/bin/helm upgrade --install k8s-app kubernetes-dashboard/ --create-namespace -n kubernetes-dashboard  
                sleep 2
                /usr/local/bin/kubectl create clusterrolebinding kubernetes-dashboard-cluster-admin --clusterrole=cluster-admin --serviceaccount=kubernetes-dashboard:kubernetes-dashboard       
                /usr/local/bin/kubectl -n kubernetes-dashboard create token kubernetes-dashboard
