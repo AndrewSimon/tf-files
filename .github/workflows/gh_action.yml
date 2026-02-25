@@ -31,7 +31,7 @@ jobs:
       - name: Install Dependencies Required to Complete Dynamic Provisioning Lifecycle
         run: |
                 cd /home/gh-runner/          
-                [ ! -e "/home/gh-runner/bin/aws" ] && curl  -o awscliv2.zip https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
+                [ ! -e "/home/gh-runner/bin/aws" ] && curl -C - -o awscliv2.zip https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
                 [ ! -e "/home/gh-runner/bin/aws" ] && python -m zipfile -e awscliv2.zip .
                 chmod 755 /home/gh-runner/aws/dist/aws
                 # To disable (ie break) automatic instance termination in 
