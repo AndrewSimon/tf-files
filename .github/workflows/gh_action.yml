@@ -95,7 +95,7 @@ jobs:
  
                /usr/local/bin/helm repo add headlamp https://kubernetes-sigs.github.io/headlamp/ 
                /usr/local/bin/helm repo update
-               /usr/local/bin/helm install headlamp headlamp/headlamp --namespace kube-system --set service.type=NodePort --set service.port=80
+               /usr/local/bin/helm upgrade --install headlamp headlamp/headlamp --namespace kube-system --set service.type=NodePort --set service.port=80
                /usr/local/bin/kubectl patch svc headlamp -n kube-system --type='json' -p='[{"op": "replace", "path": "/spec/ports/0/nodePort", "value": 30443}]'
                echo "Copy the key below, using a browser navigate to https://$FQDN:30443, and paste it into token text box"
                echo ""
