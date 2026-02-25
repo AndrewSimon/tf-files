@@ -219,7 +219,7 @@ def lambda_handler(event, context):
         'Ebs': {
             'DeleteOnTermination': True, # Explicitly ensures the EBS volume is deleted
             'VolumeSize': VOL_SIZE, # Size in GiB
-            'VolumeType': 'gp3',
+            'VolumeType': 'standard',
           },
         },
       ],
