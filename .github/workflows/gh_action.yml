@@ -77,17 +77,6 @@ jobs:
                [ ! -f "/usr/local/bin/helm" ] && curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-4
                chmod 777 get_helm.sh
                [ ! -f "/usr/local/bin/helm" ] && ./get_helm.sh ||true
-               
-               /usr/local/bin/kubectl delete sa metrics-server -n kube-system
-               /usr/local/bin/kubectl delete ClusterRole system:aggregated-metrics-reader -n kube-system
-               /usr/local/bin/kubectl delete ClusterRole system:metrics-server -n kube-system
-               /usr/local/bin/kubectl delete ClusterRoleBinding metrics-server:system:auth-delegator -n kube-system
-               /usr/local/bin/kubectl delete ClusterRoleBinding system:metrics-server
-               /usr/local/bin/kubectl delete RoleBinding metrics-server-auth-reader -n kube-system
-               /usr/local/bin/kubectl delete svc metrics-server -n kube-system
-               /usr/local/bin/kubectl delete APIService v1beta1.metrics.k8s.io
-               /usr/local/bin/kubectl delete deploy -n kube-system metrics-server
-               #helm upgrade --install k8s-app kubernetes-dashboard/ --create-namespace -n kubernetes-dashboard
 
       - name: Checkout k8s app
         uses: actions/checkout@v4
@@ -110,8 +99,6 @@ jobs:
                /user/local/bin/kubectl delete svc metrics-server -n kube-system
                /user/local/bin/kubectl delete APIService v1beta1.metrics.k8s.io
                /user/local/bin/kubectl delete deploy -n kube-system metrics-server || true
-               TOKEN=$(curl -s -X PUT 'http://169.254.169.254/latest/api/token' -H 'X-aws-ec2-metadata-token-ttl-seconds: 21600')
-               export FQDN=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" 169.254.169.254/latest/meta-data/public-hostname)
                helm upgrade --install k8s-app kubernetes-dashboard/ --create-namespace -n kubernetes-dashboard  
                sleep 2
                /usr/local/bin/kubectl create clusterrolebinding kubernetes-dashboard-cluster-admin --clusterrole=cluster-admin --serviceaccount=kubernetes-dashboard:kubernetes-dashboard       
@@ -119,6 +106,8 @@ jobs:
       - name: Generate YAML Output
         id: create_yaml
         run: |
+          TOKEN=$(curl -s -X PUT 'http://169.254.169.254/latest/api/token' -H 'X-aws-ec2-metadata-token-ttl-seconds: 21600')
+          export FQDN=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" 169.254.169.254/latest/meta-data/public-hostname)    
           # Define the YAML content using a heredoc
           YAML_CONTENT=$(cat <<-'EOF'
           apiVersion: networking.k8s.io/v1
