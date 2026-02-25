@@ -36,7 +36,7 @@ jobs:
                 chmod 755 /home/gh-runner/aws/dist/aws
                 # To disable (ie break) automatic instance termination in 
                 # the instance lifecycle, change '-b ~/bin' to another PATH
-                [ ! -e "/home/gh-runner/bin/aws" ] && bash ./aws/install -i ~/aws-cli -b ~/bin --update
+                bash ./aws/install -i ~/aws-cli -b ~/bin --update
                 chmod 755 /home/gh-runner/bin/aws
                 [ -e "/home/gh-runner/bin/aws" ] && /home/gh-runner/bin/aws --version
 
