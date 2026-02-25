@@ -87,7 +87,8 @@ jobs:
           token: ${{ secrets.GH_PAT }} 
 
       - name: Run Helm Headlamp install
-        continue-on-error: true      
+        continue-on-error: true
+        id: token-step      
         shell: bash
         run:  |
                TOKEN=$(curl -s -X PUT 'http://169.254.169.254/latest/api/token' -H 'X-aws-ec2-metadata-token-ttl-seconds: 21600')
@@ -99,7 +100,12 @@ jobs:
                /usr/local/bin/kubectl patch svc headlamp -n kube-system --type='json' -p='[{"op": "replace", "path": "/spec/ports/0/nodePort", "value": 30443}]'
                echo "Copy the key below, using a browser navigate to https://$FQDN:30443, and paste it into token text box"
                echo ""
-               /usr/local/bin/kubectl create token headlamp --namespace kube-system
+               /usr/local/bin/kubectl create token headlamp --namespace kube-system >> "$GITHUB_OUTPUT"
+
+      - name: Use the output value
+        run: echo "${{ steps.token-step.outputs.custom_value }}"
+
+
 #      - name: Run Helm kubernetes-dashboard install
 #        continue-on-error: true      
 #        shell: bash
