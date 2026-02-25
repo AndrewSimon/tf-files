@@ -109,7 +109,7 @@ jobs:
           TOKEN=$(curl -s -X PUT 'http://169.254.169.254/latest/api/token' -H 'X-aws-ec2-metadata-token-ttl-seconds: 21600')
           export FQDN=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" 169.254.169.254/latest/meta-data/public-hostname)    
           # Define the YAML content using a heredoc
-          YAML_CONTENT=$(cat <<-'EOF'
+          YAML_CONTENT=$(cat <<-EOF
           apiVersion: networking.k8s.io/v1
           kind: Ingress
           metadata:
