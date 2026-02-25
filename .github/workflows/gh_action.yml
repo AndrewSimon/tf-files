@@ -137,6 +137,6 @@ spec:
                 name: kubernetes-dashboard
                 port:
                   number: 443
-EOF
+                  EOF
 #  Lifecycle termination of node at job completion is an 'adminstrator' function controlled
 #  via ACTIONS_RUNNER_HOOK_JOB_COMPLETED and not available to workflows for 'security reasons' 
