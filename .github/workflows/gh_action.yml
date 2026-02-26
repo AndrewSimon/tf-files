@@ -52,9 +52,12 @@ jobs:
         shell: bash
         run:  |
                date
+               # K8s port for .kube/config
                sudo firewall-cmd --permanent --add-port=6443/tcp
+               # Standard HTTPS Port
                sudo firewall-cmd --permanent --add-port=443/tcp
-               sudo firewall-cmd --permanent --add-port=8080/tcp
+               # NodePort patch for headlamp service
+               sudo firewall-cmd --permanent --add-port=30443/tcp
                sudo firewall-cmd --reload
                TOKEN=$(curl -s -X PUT 'http://169.254.169.254/latest/api/token' -H 'X-aws-ec2-metadata-token-ttl-seconds: 21600')
                IP=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" 169.254.169.254/latest/meta-data/public-ipv4)
@@ -79,13 +82,6 @@ jobs:
                chmod 777 get_helm.sh
                [ ! -f "/usr/local/bin/helm" ] && ./get_helm.sh ||true
 
-      - name: Checkout k8s app
-        uses: actions/checkout@v4
-        with:
-          repository: AndrewSimon/kubernetes-dashboard
-          path: kubernetes-dashboard
-          token: ${{ secrets.GH_PAT }} 
-
       - name: Run Helm Headlamp install
         continue-on-error: true
         id: token-step      
@@ -93,13 +89,12 @@ jobs:
         run:  |
                TOKEN=$(curl -s -X PUT 'http://169.254.169.254/latest/api/token' -H 'X-aws-ec2-metadata-token-ttl-seconds: 21600')
                export FQDN=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" 169.254.169.254/latest/meta-data/public-hostname)    
- 
                /usr/local/bin/helm repo add headlamp https://kubernetes-sigs.github.io/headlamp/ 
                /usr/local/bin/helm repo update
                /usr/local/bin/helm upgrade --install headlamp headlamp/headlamp --namespace kube-system --set service.type=NodePort --set service.port=80
                /usr/local/bin/kubectl patch svc headlamp -n kube-system --type='json' -p='[{"op": "replace", "path": "/spec/ports/0/nodePort", "value": 30443}]'
-               echo "Copy the token from above command, using a browser navigate to https://$FQDN:30443, and paste it into token text box"
-               echo ""
+               echo "Copy the token from above command, using a browser navigate to http://$FQDN:30443, and paste it into token text box"
+               exit 0
                
 #  Lifecycle termination of node at job completion is an 'adminstrator' function controlled
 #  via ACTIONS_RUNNER_HOOK_JOB_COMPLETED and not available to workflows for 'security reasons' 
