@@ -101,10 +101,7 @@ jobs:
                echo "Copy the key below, using a browser navigate to https://$FQDN:30443, and paste it into token text box"
                echo ""
                /usr/local/bin/kubectl create token headlamp --namespace kube-system >> "$GITHUB_OUTPUT"
-
-      - name: Use the output value
-        run: echo "${{ steps.token-step.outputs.custom_value }}"
-
+               cat "$GITHUB_OUTPUT"
 
 #      - name: Run Helm kubernetes-dashboard install
 #        continue-on-error: true      
