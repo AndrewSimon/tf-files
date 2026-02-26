@@ -98,10 +98,8 @@ jobs:
                /usr/local/bin/helm repo update
                /usr/local/bin/helm upgrade --install headlamp headlamp/headlamp --namespace kube-system --set service.type=NodePort --set service.port=80
                /usr/local/bin/kubectl patch svc headlamp -n kube-system --type='json' -p='[{"op": "replace", "path": "/spec/ports/0/nodePort", "value": 30443}]'
-               echo "Copy the key below, using a browser navigate to https://$FQDN:30443, and paste it into token text box"
+               echo "Copy the token from above command, using a browser navigate to https://$FQDN:30443, and paste it into token text box"
                echo ""
-               /usr/local/bin/kubectl create token headlamp --namespace kube-system 2>&1 | cat -
-               /usr/local/bin/kubectl -n kubernetes-dashboard apply -f ./ingress.yaml
-         
+               
 #  Lifecycle termination of node at job completion is an 'adminstrator' function controlled
 #  via ACTIONS_RUNNER_HOOK_JOB_COMPLETED and not available to workflows for 'security reasons' 
