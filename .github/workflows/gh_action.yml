@@ -93,7 +93,10 @@ jobs:
                /usr/local/bin/helm repo update
                /usr/local/bin/helm upgrade --install headlamp headlamp/headlamp --namespace kube-system --set service.type=NodePort --set service.port=80
                /usr/local/bin/kubectl patch svc headlamp -n kube-system --type='json' -p='[{"op": "replace", "path": "/spec/ports/0/nodePort", "value": 30443}]'
-               echo "Copy the token from above command, using a browser navigate to http://$FQDN:30443, and paste it into token text box"
+               echo "Copy and paste the following on your local device command-line:"
+               echo "mkdir ~/.kube ; scp ec2-user@$FQDN:/tmp/k3s.yaml ~/.kube/config"
+               echo "kubectl create token headlamp --namespace kube-system"
+               echo "Copy the token created from above command, using a browser navigate to http://$FQDN:30443, and paste it into token text box"
                exit 0
                
 #  Lifecycle termination of node at job completion is an 'adminstrator' function controlled
