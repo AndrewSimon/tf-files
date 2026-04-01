@@ -15,6 +15,9 @@ terraform {
       source  = "integrations/github"
       version = "~> 6.0"
     }
+    datadog = {
+      source = "DataDog/datadog"
+    }
   }
   backend "s3" {
     # export your BUCKET_NAME and set TF_CLI_ARGS_init or hard-code
@@ -24,6 +27,14 @@ terraform {
 #    region = "${var.aws_region}"
   }
 }
+
+provider "datadog" {
+  api_key = "${data.aws_ssm_parameter.dd_api_key.value}"
+  app_key = "${data.aws_ssm_parameter.dd_app_key.value}"
+  api_url = "https://us5.datadoghq.com"
+}
+
+
 
 provider "local" {}
 
