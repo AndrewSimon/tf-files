@@ -373,23 +373,23 @@ resource "datadog_dashboard" "ordered_dashboard" {
   template_variable {
     name    = "var_1"
     prefix  = "host"
-    default = "aws"
+    defaults = ["aws"]
   }
   template_variable {
     name    = "var_2"
     prefix  = "service_name"
-    default = "autoscaling"
+    defaults = ["autoscaling"]
   }
 
   template_variable_preset {
     name = "preset_1"
     template_variable {
       name  = "var_1"
-      value = "host.dc"
+      values = ["host.dc"]
     }
     template_variable {
       name  = "var_2"
-      value = "my_service"
+      values = ["my_service"]
     }
   }
 }
