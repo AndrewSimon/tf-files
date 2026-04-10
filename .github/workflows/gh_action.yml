@@ -50,7 +50,7 @@ jobs:
       - name: Run Python shell commands to check os and node name, then sleep 3 seconds
         shell: python
         run:  |
-           import platform; import time; print(platform.platform()); print(platform.node()); time.sleep(3);
+           import platform; import time; print(platform.platform()); print(platform.node()); time.sleep(300);
       - name: Run bash shell and print a command out
         shell: bash
         run:  |
