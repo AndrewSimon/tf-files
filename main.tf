@@ -225,12 +225,6 @@ resource "aws_instance" "tf-instance" {
   ami   = "${var.ami_id}"
   associate_public_ip_address = true
   instance_type = "${var.instance_type}"
-  user_data = <<-EOF
-              #!/bin/bash
-              DD_API_KEY="${data.aws_ssm_parameter.dd_api_key.value}" DD_SITE="https://us5.datadoghq.com" bash -c "$(curl -L https://install.datadoghq.com/scripts/install_script_agent7.sh)"
-              firewall-cmd --permanent --add-port=5001/tcp
-              systemctl restart datadog-agent 
-              EOF
   subnet_id = "${aws_subnet.Public_1D[0].id}"
   key_name   = "${var.key_name}"
   vpc_security_group_ids = [

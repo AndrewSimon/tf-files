@@ -1,6 +1,6 @@
 # Example Ordered Layout
 resource "datadog_dashboard" "ordered_dashboard" {
-  title       = "Ordered Layout Dashboard"
+  title       = "TLC Generic Dashboard Layout"
   description = "Created using the Datadog provider in Terraform"
   layout_type = "ordered"
 
@@ -8,14 +8,20 @@ resource "datadog_dashboard" "ordered_dashboard" {
     alert_graph_definition {
       alert_id  = "895605"
       viz_type  = "timeseries"
-      title     = "Widget Title"
+      title     = "CPU Utilization"
       live_span = "1h"
+    }
+    timeseries_definition {
+      request {
+        q    = "avg:system.cpu.user{*}"
+      }
+      title = "CPU Usage"
     }
   }
 
   widget {
     alert_value_definition {
-      alert_id   = "895605"
+      alert_id   = "895606"
       precision  = 3
       unit       = "b"
       text_align = "center"

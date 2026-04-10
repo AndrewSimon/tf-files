@@ -76,10 +76,17 @@ VOL_SIZE = ${var.volume_size} #Integer
 SPOT_MARKET = ${var.spot_market} #Boolean
 MAX = ${var.max_instances} #Integer
 VOLUME_TYPE = 'standard'
+DD_API_KEY = '${data.aws_ssm_parameter.dd_api_key.value}'
+DD_SITE = 'us5.datadoghq.com' 
 
 MKT_OPT = "spot" if SPOT_MARKET else "on-demand"
 
 USERDATA = f"""#!/bin/bash
+# Set up Datadog
+DD_API_KEY="{DD_API_KEY}" DD_SITE="{DD_SITE}" bash -c "$(curl -L https://install.datadoghq.com/scripts/install_script_agent7.sh)"
+echo "site: $DD_SITE" >> /etc/datadog-agent/datadog.yaml
+firewall-cmd --permanent --add-port=5001/tcp
+systemctl restart datadog-agent 
 # Runner hook to complete dynamically provisioned instance lifecycle.
 # Because there is a configurable maximum number of runners, first check
 # the queue: if more jobs than runners, do not terminate
