@@ -6,7 +6,7 @@ resource "datadog_dashboard" "ordered_dashboard" {
 
   widget {
     alert_graph_definition {
-      alert_id  = "895605"
+      alert_id  = "18673345"
       viz_type  = "timeseries"
       title     = "CPU Utilization"
       live_span = "1h"
@@ -20,25 +20,20 @@ resource "datadog_dashboard" "ordered_dashboard" {
   }
 
   widget {
-    alert_value_definition {
-      alert_id   = "895606"
-      precision  = 3
-      unit       = "b"
-      text_align = "center"
-      title      = "Widget Title"
+    alert_graph_definition {
+      alert_id  = "18673346"
+      viz_type  = "timeseries"
+      title     = "Disk Utilization"
+      live_span = "1h"
+    }
+    timeseries_definition {
+      request {
+        q    = "avg:system.disk.utilized{*} by {host}"
+      }
+      title = "CPU Usage"
     }
   }
-
-  widget {
-    alert_value_definition {
-      alert_id   = "895605"
-      precision  = 3
-      unit       = "b"
-      text_align = "center"
-      title      = "Widget Title"
-    }
-  }
-
+  
   widget {
     change_definition {
       request {
@@ -50,7 +45,7 @@ resource "datadog_dashboard" "ordered_dashboard" {
         order_dir     = "desc"
         show_present  = true
       }
-      title     = "Widget Title"
+      title     = "System Load in Staging by Account"
       live_span = "1h"
     }
   }
