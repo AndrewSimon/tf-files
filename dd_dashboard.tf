@@ -35,76 +35,14 @@ resource "datadog_dashboard" "ordered_dashboard" {
   }
   
   widget {
-    change_definition {
-      request {
-        q             = "avg:system.load.1{env:prod} by {account}"
-        change_type   = "absolute"
-        compare_to    = "week_before"
-        increase_good = true
-        order_by      = "name"
-        order_dir     = "desc"
-        show_present  = true
-      }
-      title     = "System Load in prod by Account"
-      live_span = "1h"
-    }
-  }
-
-  widget {
-    distribution_definition {
-      request {
-        q = "avg:system.load.1{env:prod} by {account}"
-        style {
-          palette = "warm"
-        }
-      }
-      title     = "Widget Title"
-      live_span = "1h"
-    }
-  }
-
-  widget {
-    check_status_definition {
-      check     = "aws.ecs.agent_connected"
-      grouping  = "cluster"
-      group_by  = ["account", "cluster"]
-      tags      = ["account:demo", "cluster:awseb-ruthebdog-env-8-dn3m6u3gvk"]
-      title     = "Widget Title"
-      live_span = "1h"
-    }
-  }
-
-  widget {
-    heatmap_definition {
-      request {
-        q = "avg:system.load.1{env:prod} by {account}"
-        style {
-          palette = "warm"
-        }
-      }
-      yaxis {
-        min          = 1
-        max          = 2
-        include_zero = true
-        scale        = "sqrt"
-      }
-      title     = "Widget Title"
-      live_span = "1h"
-    }
-  }
-
-  widget {
     hostmap_definition {
       request {
         fill {
           q = "avg:system.load.1{*} by {host}"
         }
-        size {
-          q = "avg:memcache.uptime{*} by {host}"
-        }
       }
-      node_type       = "container"
-      group           = ["host", "region"]
+      node_type       = "host"
+      group           = []
       no_group_hosts  = true
       no_metric_hosts = true
       scope           = ["region:${data.aws_region.current.region}", "aws_account:${data.aws_caller_identity.current.account_id}"]
@@ -114,16 +52,16 @@ resource "datadog_dashboard" "ordered_dashboard" {
         fill_min     = "10"
         fill_max     = "20"
       }
-      title = "Widget Title"
+      title = "System Load (Green=Good, Yellow=Warning, Red=Bad)"
     }
   }
 
   widget {
     note_definition {
-      content          = "note text"
+      content          = "Due to a lack of documentation on Terraform's Datadog provider dashboard resource, the best way to generate terraform hcl IaC for the dashboard is to manually add/update/delete widgets in TLC Generic Dashboard Layout, then run terraform plan to show the manual entries that will be replaced.  Update your hcl with key and value pairs of what will be replaced to match manual entries such that the plan offers no change and matches."
       background_color = "pink"
       font_size        = "14"
-      text_align       = "center"
+      text_align       = "left"
       show_tick        = true
       tick_edge        = "left"
       tick_pos         = "50%"
