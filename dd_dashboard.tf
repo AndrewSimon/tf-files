@@ -58,7 +58,7 @@ resource "datadog_dashboard" "ordered_dashboard" {
 
   widget {
     note_definition {
-      content          = "Due to a lack of documentation on Terraform's Datadog provider dashboard resource, the best way to generate terraform hcl IaC for the dashboard is to manually add/update/delete widgets in TLC Generic Dashboard Layout, then run terraform plan to show the manual entries that will be replaced.  Update your hcl with key and value pairs of what will be replaced to match manual entries such that the plan offers no change and matches."
+      content          = "Due to a lack of documentation on Terraform's Datadog provider dashboard resource, the best way to generate terraform hcl IaC for the dashboard is to manually add/update/delete widgets in TLC Generic Dashboard Layout, then run terraform plan to show the manual entries that will be added or replaced.  Update your hcl code with key and value pairs to match what the plan shows will be replaced. Re-running the plan should offer fewer changes."
       background_color = "pink"
       font_size        = "14"
       text_align       = "left"
