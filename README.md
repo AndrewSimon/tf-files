@@ -104,7 +104,10 @@ variables.tf:
 main.tf: Nothing needs to change. Optionally, change 'test2' to another VPC name, replace all occurrences of the string "test2" with a VPC name you like
 
 ### For Datadog integration via datadog branch, only
-If you added valid DD_SITE and DD_TAGS from your datadog account, after you run terraform apply, you will have installed the <b>TLC Custom Dashboard Monitor</b> and be able to monitor the key performance metrics of your GHR Action Runners, in real-time. Log into your Datadog account, click the <b>Dashboards</b> link in the side menu, find TLC's Custom Dashboard Monitor, and click to launch.  NOTE: It takes about 10 minutes for GHR and Datadog Agent installs.  TF-Files default wprkflow will run an additional 7 minutes or so as it runs the AWS CLI install and a 5 minute timer.  If your organization is capable of submitting many, simultaneous run, long running jobs to these runners (not our test workflow), you will collect more data in Datadog; and be able to include log and measure application components like NodeJS, NGinX, Java and/or PHP, to enhance insights and provide even better predictive/proactive monitoring.
+If you added valid DD_SITE and DD_TAGS from your datadog account, after you run terraform apply, you will have installed the <b>TLC Custom Dashboard Monitor</b> and be able to monitor the key performance metrics of your GHR Action Runners, in real-time. Log into your Datadog account, click the <b>Dashboards</b> link in the side menu, find TLC's Custom Dashboard Monitor, and click to launch.  
+
+NOTE: It takes about 5 to 10 minutes for GHR and Datadog Agent installs.  TF-Files default wprkflow will run an additional 7 minutes or so as it runs the AWS CLI install and a 5 minute timer.
+
 
 lambda_handler.tf:
 1. For now, datadog site (DD_SITE) is hard-coded in 2 places. I set it to us5.datadoghq.com. Replace with your datadog site, if not us5.datadoghq.com.
