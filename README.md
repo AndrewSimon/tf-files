@@ -103,11 +103,15 @@ variables.tf:
 
 main.tf: Nothing needs to change. Optionally, change 'test2' to another VPC name, replace all occurrences of the string "test2" with a VPC name you like
 
-### For datadog integration via datadog branch, only
-If you added valid DD_SITE and DD_TAGS from your datadog account, you will install the <b>TLC Generic Dashboard Layout</b>
+### For Datadog integration via datadog branch, only
+If you added valid DD_SITE and DD_TAGS from your datadog account, after you run terraform apply, you will have installed the <b>TLC Custom Dashboard Monitor</b> and be able to monitor the key performance metrics of your GHR Action Runners, in real-time. Log into your Datadog account, click the <b>Dashboards</b> link in the side menu, find TLC's Custom Dashboard Monitor, and click to launch.  NOTE: It takes about 10 minutes for GHR and Datadog Agent installs.  TF-Files default wprkflow will run an additional 7 minutes or so as it runs the AWS CLI install and a 5 minute timer.  If your organization is capable of submitting many, simultaneous run, long running jobs to these runners (not our test workflow), you will collect more data in Datadog; and be able to include log and measure application components like NodeJS, NGinX, Java and/or PHP, to enhance insights and provide even better predictive/proactive monitoring.
+
 lambda_handler.tf:
-1. For now, datadog host is hard-coded in 2 places - replace with your datadog site (e.g. us2.datadoghq.com)
-2. The environment is hard-coded to 'prod' via env:prod.  Update to your organization's environment nomenclature and name, if desired.
+1. For now, datadog site (DD_SITE) is hard-coded in 2 places. I set it to us5.datadoghq.com. Replace with your datadog site, if not us5.datadoghq.com.
+2. OPTIONAL: The environment is hard-coded to 'prod' via (DD_TAGS) 'env:prod'.  Update to your organization's environment nomenclature and name, if desired.
+
+config.tf:
+1. Change api_url value to your datadog site api url, if not https://us5.datadoghq.com
 
 dd_dashboard.tf:
 1. To get valid alert ids, in our browser, navigate to https://<your-datadog-site>/monitors/manage?p=1

@@ -1,6 +1,6 @@
 # Example Ordered Layout
 resource "datadog_dashboard" "ordered_dashboard" {
-  title       = "TLC Generic Dashboard Layout"
+  title       = "TLC's Custom Dashboard Monitor"
   description = "Created using the Datadog provider in Terraform"
   layout_type = "ordered"
 
@@ -52,7 +52,7 @@ resource "datadog_dashboard" "ordered_dashboard" {
         fill_min     = "10"
         fill_max     = "20"
       }
-      title = "System Load (Green=Good, Yellow=Warning, Red=Bad)"
+      title = "System Load (Green=Good, Yellow=Warning, Red=High, Grey=Offline)"
     }
   }
 
@@ -69,52 +69,35 @@ resource "datadog_dashboard" "ordered_dashboard" {
   }
 
   widget {
-    query_value_definition {
-      request {
-        q          = "avg:system.load.1{env:prod} by {account}"
-        aggregator = "sum"
-        conditional_formats {
-          comparator = "<"
-          value      = "2"
-          palette    = "white_on_green"
-        }
-        conditional_formats {
-          comparator = ">"
-          value      = "2.2"
-          palette    = "white_on_red"
-        }
-      }
-      autoscale   = true
-      custom_unit = "xx"
-      precision   = "4"
-      text_align  = "right"
-      title       = "Widget Title"
-      live_span   = "1h"
-    }
-  }
-
-  widget {
-    query_table_definition {
-      request {
-        q          = "avg:system.load.1{env:prod} by {account}"
-        aggregator = "sum"
-        limit      = "10"
-        conditional_formats {
-          comparator = "<"
-          value      = "2"
-          palette    = "white_on_green"
-        }
-        conditional_formats {
-          comparator = ">"
-          value      = "2.2"
-          palette    = "white_on_red"
-        }
-      }
-      title     = "Widget Title"
+    alert_graph_definition {
+      alert_id  = "18673349"
+      viz_type  = "timeseries"
+      title     = "Network Traffic (Inbound)"
       live_span = "1h"
     }
+    timeseries_definition {
+      request {
+        q    = "avg:system.net.bytes_rcvd{*}"
+      }
+      title = "Network Traffic (Inbound)"
+    }
   }
 
+   widget {
+    alert_graph_definition {
+      alert_id  = "18673349"
+      viz_type  = "timeseries"
+      title     = "Network Traffic (Outbound)"
+      live_span = "1h"
+    }
+    timeseries_definition {
+      request {
+        q    = "avg:system.net.bytes_sent{*}"
+      }
+      title = "Network Traffic (Outbound)"
+    }
+  }
+  
   widget {
     scatterplot_definition {
       request {
