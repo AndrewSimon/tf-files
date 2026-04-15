@@ -23,21 +23,21 @@ resource "datadog_dashboard" "ordered_dashboard" {
     alert_graph_definition {
       alert_id  = "18673346"
       viz_type  = "timeseries"
-      title     = "Disk Utilization"
+      title     = "Disk Latency (over 500ms wait time)"
       live_span = "1h"
     }
     timeseries_definition {
       request {
         q    = "avg:system.disk.utilized{*} by {host}"
       }
-      title = "CPU Usage"
+      title = "Disk Latency"
     }
   }
   
   widget {
     change_definition {
       request {
-        q             = "avg:system.load.1{env:staging} by {account}"
+        q             = "avg:system.load.1{env:prod} by {account}"
         change_type   = "absolute"
         compare_to    = "week_before"
         increase_good = true
@@ -45,7 +45,7 @@ resource "datadog_dashboard" "ordered_dashboard" {
         order_dir     = "desc"
         show_present  = true
       }
-      title     = "System Load in Staging by Account"
+      title     = "System Load in prod by Account"
       live_span = "1h"
     }
   }
@@ -53,7 +53,7 @@ resource "datadog_dashboard" "ordered_dashboard" {
   widget {
     distribution_definition {
       request {
-        q = "avg:system.load.1{env:staging} by {account}"
+        q = "avg:system.load.1{env:prod} by {account}"
         style {
           palette = "warm"
         }
@@ -77,7 +77,7 @@ resource "datadog_dashboard" "ordered_dashboard" {
   widget {
     heatmap_definition {
       request {
-        q = "avg:system.load.1{env:staging} by {account}"
+        q = "avg:system.load.1{env:prod} by {account}"
         style {
           palette = "warm"
         }
@@ -107,7 +107,7 @@ resource "datadog_dashboard" "ordered_dashboard" {
       group           = ["host", "region"]
       no_group_hosts  = true
       no_metric_hosts = true
-      scope           = ["region:us-east-1", "aws_account:727006795293"]
+      scope           = ["region:${data.aws_region.current.region}", "aws_account:${data.aws_caller_identity.current.account_id}"]
       style {
         palette      = "yellow_to_green"
         palette_flip = true
@@ -133,7 +133,7 @@ resource "datadog_dashboard" "ordered_dashboard" {
   widget {
     query_value_definition {
       request {
-        q          = "avg:system.load.1{env:staging} by {account}"
+        q          = "avg:system.load.1{env:prod} by {account}"
         aggregator = "sum"
         conditional_formats {
           comparator = "<"
@@ -158,7 +158,7 @@ resource "datadog_dashboard" "ordered_dashboard" {
   widget {
     query_table_definition {
       request {
-        q          = "avg:system.load.1{env:staging} by {account}"
+        q          = "avg:system.load.1{env:prod} by {account}"
         aggregator = "sum"
         limit      = "10"
         conditional_formats {

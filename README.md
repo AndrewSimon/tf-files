@@ -18,6 +18,7 @@ This is a terraform plan that:
 14. The github action installs dependencies, prints runner's OS (currently: Linux-5.15.0-101.103.2.1.el9uek.x86_64-x86_64-with-glibc2.34) and hostname, which discloses region instance is in.
 15. MOST IMPORTANTLY: Creates the ACTIONS_RUNNER_HOOK_JOB_COMPLETED lifecycle (termination) step via ec2 instance user-data
 16. Creates a lot of IAM policy documents and roles for steps 1-15 above to work
+17. Auto-magically adds GH Actions self-hosted EC2 runners to your Datadog Site (when using datadog branch)!
 
 The Github Actions workflow comments describe the dependency install and how to modify to disable the Dynamic Runner life-cycle until reverted.  Life-cycle dependency on the repo job does return some control of the life-cycle from the 'administrator' back to the 'developer' using that repo.  Administrators need move only one step out of github actions to the user-data defined in terraform to remove non-Administrators' ability to disable the life-cycle.
 
@@ -28,7 +29,11 @@ The packages and setup required to be installed before starting are:
 2. git client
 3. awscliv2
 4. Terraform
-5. SSM parameter store values for AWS Security Group CIDR list, GH Pat, GH Webhook secret
+5. Manually add SSM parameter store values for the following values: 
+<div>a. AWS Security Group CIDR list (Some public IPs are CUI)
+<BR/>b. GitHub PAT 
+<BR/>c. GitHub Webhook secret
+<BR/>d. Datadog API Key (Datadog site name is hard-coded, see below) </div> 
 6. An s3 bucket for the terraform 'backend' to use to store terraform state
 7. Subscription to the TLC Github Actions Runner AMI (alternate AMI's are unsupported).
 
@@ -64,26 +69,26 @@ https://git-scm.com/book/en/v2/Getting-Started-Installing-Git
 https://www.terraform.io/intro/getting-started/install.html
 ```
   
-## Create an s3 bucket for the back-end (not coded here)
+## Create an s3 bucket for the back-end (done once per region, manually)
 `aws s3 mb s3://<name-of-the-bucket-to-store-state-files> --region <your-aws-region>`  --> without angle brackets and with a unique name and AWS region.  Repeat for each region you want to utilize.
 <P>The name of the bucket must be the same as the one you configure in config.tf and/or initialized (see below).
 
-## Create an SSM parameter (not coded here)
+## Create an SSM parameter (done once per region, manually)
 SSM parameter store can be used for sensitive data like <i>F/W (SG) IP allow ranges</i> that should not go into a public repository. Using Terraform to create the store would bump secrets management to a less desirable method (like local environment variables or a tfvars file) and make retrieval of those values from SSM parameter store optional. Repeat 1 -6 below in each AWS region you wish to utilize.
 
 1. Enter AWS Systems Manager
 2. Click Parameter Store
 3. Click Create Parameter
-4. Create a StringList type parameter with name used in your terraform
+4. Create a StringList type parameter with name used in your terraform, currently <i>vpc_test2_default_sg_cidrs</i>
 5. Enter the CIDR list into values field, no spaces or quotes. E.g 123.123.123.123/32,224.242.224.0/24,10.0.0.0/16
-6. Repeat for other secrets, as needed
+6. **Repeat** for github webhook secret (ssm parameter name expected is <i>gh_webhook_secret</i>); and/or datadog secrets (ssm parameter names expected are <i>dd_api_key</i> and <i>dd_app_key</i>, respectively).
 
 ## tf-files Install Instructions
 1. Change directory to the location you want your terraform plan to be, usually your home directory
 2. Using the git command-line, clone and checkout the 'workflow' branch, which is newest:
 
 ```
-git clone -b workflow https://github.com/AndrewSimon/tf-files
+git clone -b datadog https://github.com/AndrewSimon/tf-files
 ```
 
 ### tf-files Configuration Instructions:
@@ -97,6 +102,19 @@ variables.tf:
 4. We have config.tf commented backend values to more easily support multiple regions as terraform init DOES support variables. Just run *export TF_CLI_ARGS_init="-backend-config=bucket=$BUCKET_NAME -backend-config=region=$AWS_REGION"* where you have already exported $BUCKET_NAME (the name of the s3 backend bucket) and AWS_REGION, then run terraform steps below
 
 main.tf: Nothing needs to change. Optionally, change 'test2' to another VPC name, replace all occurrences of the string "test2" with a VPC name you like
+
+### For datadog integration via datadog branch, only
+If you added valid DD_SITE and DD_TAGS from your datadog account, you will install the <b>TLC Generic Dashboard Layout</b>
+lambda_handler.tf:
+1. For now, datadog host is hard-coded in 2 places - replace with your datadog site (e.g. us2.datadoghq.com)
+2. The environment is hard-coded to 'prod' via env:prod.  Update to your organization's environment nomenclature and name, if desired.
+
+dd_dashboard.tf:
+1. To get valid alert ids, in our browser, navigate to https://<your-datadog-site>/monitors/manage?p=1
+2. Note the names of your default monitors, in alphabetical order. The first one is usually CPU. Click it and look at the url to which you are sent,
+3. Note the last 8 or 9 characters of the url are numeric. This number is the alert id for CPU (if CPU is the link you clicked).  Use this number for CPU's alert_id in dd_dashboard.tf. 
+4. **Repeat** clicking the remaining (6 or so) default monitors and using the numeric part of the url for the corresponding alert_id in dd_dashboard.tf.
+5. Update (modify/add) environment nomenclature and names to monitor to match what you deployed via lambda_handler.tf, as needed. 
 
 ### Run command-line Terraform commands to test, execute and destroy
 1. cd tf-files
