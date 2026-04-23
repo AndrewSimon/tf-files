@@ -45,8 +45,9 @@ resource "local_file" "lambda_handler" {
 # This is a generated script by Terraform lambda_handler.tf
 
 import boto3
+import sys
 import logging
-import requests
+import urllib3
 import hmac
 import hashlib
 import json
@@ -56,11 +57,16 @@ from hmac import compare_digest
 # Configure logging
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
-
+# Configure api.github.com http headers
+http = urllib3.PoolManager()
+gh_headers = {
+    "Authorization": f"Bearer {GH_PAT}",
+    "Accept": "application/vnd.github+json",
+    "X-GitHub-Api-Version": "2022-11-28",
+    "User-Agent": "urllib3-script"
+}
+# Configure boto3 client and ec2 user-data variables
 EC2_CLIENT = boto3.client('ec2', region_name='${local.region_name}')
-# Right now, this deploys to whatever your 'default' vpc is set to in your account, 
-# not the one tf-files just created.  We default to Az 'f' in hopes of lower spot costs. 
-#
 AWS_REGION = '${local.region_name}'
 AMI_ID = '${var.ami_id}' # Technology Leadership's GHR AMI 
 INSTANCE_TYPE = '${var.instance_type}'
@@ -133,25 +139,29 @@ def validate_signature(github_signature, payload_body, secret_token):
     # Compare signatures using a timing-safe method
     return compare_digest(calculated_signature, expected_signature)
 
-gh_headers = {
-    "Accept": "application/vnd.github+json",
-    "Authorization": f"Bearer {GH_PAT}"
-}
+def require_queued_job():
+    # Set num_queued global so lambda_handler function can access it
+    global num_queued
+    # Get Number of Online/Busy Runners
+    runners_url = f"https://api.github.com/repos/{REPO_NAME}/actions/runners"
+    runners_resp = http.request("GET", runners_url, headers=gh_headers)
+    runners_data = json.loads(runners_resp.data)
+    
+    total_runners = runners_data.get("total_count", 0)
+    # Status can be 'online' or 'offline'. 'busy' indicates running a job.
+    online_runners = [r for r in runners_data.get("runners", []) if r["status"] == "online"]
+    num_online = len(online_runners)
+    
+    # 2. Get Number of Queued Jobs
+    # Filtering for 'queued' status
+    runs_url = f"https://api.github.com/repos/{REPO_NAME}/actions/runs?status=queued"
+    runs_resp = http.request("GET", runs_url, headers=gh_headers)
+    runs_data = json.loads(runs_resp.data)
+    num_queued = runs_data.get("total_count", 0)
 
-def get_active_runners():
-    url = f"https://api.github.com/repos/{REPO_NAME}/actions/runners"
-    response = requests.get(url, headers=gh_headers)
-    runners = response.json().get("runners", [])
-    # Filter for runners that are NOT 'offline' (typically 'online', 'idle', or 'active')
-    active_runners = [r for r in runners if r.get("status") != "offline"]
-    return len(active_runners)
-
-def get_queued_jobs():
-    # Filter directly via API status parameter
-    url = f"https://api.github.com/repos/{REPO_NAME}/actions/runs?status=queued"
-    response = requests.get(url, headers=gh_headers)
-    # The 'total_count' field contains the number of queued workflow runs
-    return response.json().get("total_count", 0)
+    print(f"Total Runners: {total_runners}")
+    print(f"Online Runners: {num_online}")
+    print(f"Queued Repository Jobs: {num_queued}")
 
 def lambda_handler(event, context):
     """
@@ -185,8 +195,12 @@ def lambda_handler(event, context):
     """
     Checks for current online runners and job queue, will override MAX if more runners are unnecessary.
     """
-    print(f"Non-offline runners: {get_active_runners()}")
-    print(f"Queued repo jobs: {get_queued_jobs()}")
+    require_queued_job()
+    if num_queued == 0:
+      return {
+          'statusCode': 200,
+          'body': f"No items in {REPO_NAME} job queue.  Max instances applies only if there are jobs in the queue.  Not launching anymore instances at this time."
+      }
          
     """
     Checks for a running spot or on-demand instance with a specific tag and launches one if none exists.
