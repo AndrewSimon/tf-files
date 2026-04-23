@@ -46,6 +46,7 @@ resource "local_file" "lambda_handler" {
 
 import boto3
 import logging
+import requests
 import hmac
 import hashlib
 import json
@@ -132,6 +133,25 @@ def validate_signature(github_signature, payload_body, secret_token):
     # Compare signatures using a timing-safe method
     return compare_digest(calculated_signature, expected_signature)
 
+gh_headers = {
+    "Accept": "application/vnd.github+json",
+    "Authorization": f"Bearer {GH_PAT}"
+}
+
+def get_active_runners():
+    url = f"https://api.github.com/repos/{REPO_NAME}/actions/runners"
+    response = requests.get(url, headers=gh_headers)
+    runners = response.json().get("runners", [])
+    # Filter for runners that are NOT 'offline' (typically 'online', 'idle', or 'active')
+    active_runners = [r for r in runners if r.get("status") != "offline"]
+    return len(active_runners)
+
+def get_queued_jobs():
+    # Filter directly via API status parameter
+    url = f"https://api.github.com/repos/{REPO_NAME}/actions/runs?status=queued"
+    response = requests.get(url, headers=gh_headers)
+    # The 'total_count' field contains the number of queued workflow runs
+    return response.json().get("total_count", 0)
 
 def lambda_handler(event, context):
     """
@@ -161,6 +181,12 @@ def lambda_handler(event, context):
 
     headers = event.get('headers', {})
     logger.info(f"Headers: {json.dumps(headers)}")
+
+    """
+    Checks for current online runners and job queue, will override MAX if more runners are unnecessary.
+    """
+    print(f"Non-offline runners: {get_active_runners()}")
+    print(f"Queued repo jobs: {get_queued_jobs()}")
          
     """
     Checks for a running spot or on-demand instance with a specific tag and launches one if none exists.

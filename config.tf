@@ -15,6 +15,10 @@ terraform {
       source  = "integrations/github"
       version = "~> 6.0"
     }
+#    datadog = {
+#      source = "datadog/datadog"
+#      version = "> 2.0.0"
+#    }
   }
   backend "s3" {
     # export your BUCKET_NAME and set TF_CLI_ARGS_init or hard-code
@@ -24,6 +28,11 @@ terraform {
 #    region = "${var.aws_region}"
   }
 }
+
+# 
+#provider "datadog" {
+#  validate = false
+#}
 
 provider "local" {}
 
