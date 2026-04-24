@@ -57,14 +57,7 @@ from hmac import compare_digest
 # Configure logging
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
-# Configure api.github.com http headers
-http = urllib3.PoolManager()
-gh_headers = {
-    "Authorization": f"Bearer {GH_PAT}",
-    "Accept": "application/vnd.github+json",
-    "X-GitHub-Api-Version": "2022-11-28",
-    "User-Agent": "urllib3-script"
-}
+
 # Configure boto3 client and ec2 user-data variables
 EC2_CLIENT = boto3.client('ec2', region_name='${local.region_name}')
 AWS_REGION = '${local.region_name}'
@@ -83,9 +76,15 @@ VOL_SIZE = ${var.volume_size} #Integer
 SPOT_MARKET = ${var.spot_market} #Boolean
 MAX = ${var.max_instances} #Integer
 VOLUME_TYPE = 'standard'
-
 MKT_OPT = "spot" if SPOT_MARKET else "on-demand"
-
+# Configure api.github.com http headers
+http = urllib3.PoolManager()
+gh_headers = {
+    "Authorization": f"Bearer {GH_PAT}",
+    "Accept": "application/vnd.github+json",
+    "X-GitHub-Api-Version": "2022-11-28",
+    "User-Agent": "urllib3-script"
+}
 USERDATA = f"""#!/bin/bash
 # Runner hook to complete dynamically provisioned instance lifecycle.
 # Because there is a configurable maximum number of runners, first check
