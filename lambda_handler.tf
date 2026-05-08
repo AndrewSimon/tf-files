@@ -128,7 +128,7 @@ PENDING_COUNT=$(echo "$RESPONSE" | awk -F'[,:"]' '
 ')
 echo "Number of pending jobs: $PENDING_COUNT"
 if (( $PENDING_COUNT == 0 )) ; then
-  echo "No jobs pending, this runner is not needed, terminating in 5 seconds!
+  echo "No jobs pending, this runner is not needed, terminating in 5 seconds!"
   sleep 5
   shutdown -h now
 fi
