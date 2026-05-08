@@ -112,6 +112,26 @@ EOF
 echo ACTIONS_RUNNER_HOOK_JOB_COMPLETED=/home/gh-runner/bin/complete_lifecycle.sh >> /etc/environment
 chmod +x /home/gh-runner/bin/complete_lifecycle.sh
 chmod +x /var/lib/cloud/instance/user-data.txt
+
+# List workflow runs for a repo
+RESPONSE=$(curl -s -H "Authorization: token {GH_PAT}" -H "Accept: application/vnd.github.v3+json" "https://api.github.com/repos/{REPO_NAME}/actions/runs")
+
+# Use awk to parse the json and count runs
+# It looks for "status" key and counts if it is "queued" or "in_progress"
+PENDING_COUNT=$(echo "$RESPONSE" | awk -F'[,:"]' '
+    /"status":/ {{
+        if ($5 == "queued" || $5 == "in_progress") {{
+            count++
+        }}
+    }}
+    END {{ print count+0 }}
+')
+echo "Number of pending jobs: $PENDING_COUNT"
+if (( $PENDING_COUNT == 0 )) ; then
+  echo "No jobs pending, this runner is not needed, terminating in 5 seconds!
+  sleep 5
+  shutdown -h now
+fi
 # Configure runner and connect to server
 export DEFAULT_MAX=1
 TOKEN=$(curl -s -X PUT 'http://169.254.169.254/latest/api/token' -H 'X-aws-ec2-metadata-token-ttl-seconds: 21600')
@@ -138,32 +158,6 @@ def validate_signature(github_signature, payload_body, secret_token):
     print("calculated:" + calculated_signature)    
     # Compare signatures using a timing-safe method
     return compare_digest(calculated_signature, expected_signature)
-
-def require_queued_job():
-    # Set num_queued global so lambda_handler function can access it
-    global num_queued
-    # Get Number of Online/Busy Runners
-    runners_url = f"https://api.github.com/repos/{REPO_NAME}/actions/runners"
-    runners_resp = http.request("GET", runners_url, headers=gh_headers)
-    runners_data = json.loads(runners_resp.data)
-    
-    total_runners = runners_data.get("total_count", 0)
-    # Status can be 'online' or 'offline'. 'busy' indicates running a job.
-    online_runners = [r for r in runners_data.get("runners", []) if r["status"] == "online"]
-    num_online = len(online_runners)
-    
-    # 2. Get Number of Queued Jobs
-    # Due to github.com delay, wait 5 seconds before checking job queue
-    time.sleep(5)
-    # Filtering for 'queued' status
-    runs_url = f"https://api.github.com/repos/{REPO_NAME}/actions/runs?status=queued"
-    runs_resp = http.request("GET", runs_url, headers=gh_headers)
-    runs_data = json.loads(runs_resp.data)
-    num_queued = runs_data.get("total_count", 0)
-
-    print(f"Total Runners: {total_runners}")
-    print(f"Online Runners: {num_online}")
-    print(f"Queued Repository Jobs: {num_queued}")
 
 def lambda_handler(event, context):
     """
@@ -193,16 +187,6 @@ def lambda_handler(event, context):
 
     headers = event.get('headers', {})
     logger.info(f"Headers: {json.dumps(headers)}")
-
-    """
-    Checks for current online runners and job queue, will override MAX if more runners are unnecessary.
-    """
-    require_queued_job()
-    if num_queued == 0:
-      return {
-          'statusCode': 200,
-          'body': f"No items in {REPO_NAME} job queue.  Max instances applies only if there are jobs in the queue.  Not launching anymore instances at this time."
-      }
          
     """
     Checks for a running spot or on-demand instance with a specific tag and launches one if none exists.
