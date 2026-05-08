@@ -153,7 +153,7 @@ def require_queued_job():
     num_online = len(online_runners)
     
     # 2. Get Number of Queued Jobs
-    # Due to poor performance in github, wait 5 seconds before checking queue
+    # Due to github.com delay, wait 5 seconds before checking job queue
     time.sleep(5)
     # Filtering for 'queued' status
     runs_url = f"https://api.github.com/repos/{REPO_NAME}/actions/runs?status=queued"
