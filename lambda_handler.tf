@@ -46,6 +46,7 @@ resource "local_file" "lambda_handler" {
 
 import boto3
 import sys
+import time
 import logging
 import urllib3
 import hmac
@@ -152,6 +153,8 @@ def require_queued_job():
     num_online = len(online_runners)
     
     # 2. Get Number of Queued Jobs
+    # Due to poor performance in github, wait 15 seconds before checking queue
+    time.sleep(15)
     # Filtering for 'queued' status
     runs_url = f"https://api.github.com/repos/{REPO_NAME}/actions/runs?status=queued"
     runs_resp = http.request("GET", runs_url, headers=gh_headers)
