@@ -91,6 +91,7 @@ USERDATA = f"""#!/bin/bash
 # Because there is a configurable maximum number of runners, first check
 # the queue: if more jobs than runners, do not terminate
 cat <<'EOF' > /home/gh-runner/bin/complete_lifecycle.sh
+trap 'exit 0' TERM
 export QUEUED=$(curl -s -L   -H "Accept: application/vnd.github+json"   -H "Authorization: Bearer {GH_PAT}" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/AndrewSimon/tf-files/actions/runs?sort=created&direction=desc&per_page=25"|grep  -E '"id": [0-9]{{10}}'| sort -r -u| awk '{{print $2}}'|sed -e  's/,//g' |while read x
 do
 curl -s -L -H "Accept: application/vnd.github+json" -H "Authorization: Bearer {GH_PAT}" -H "X-GitHub-Api-Version: 2022-11-28" https://api.github.com/repos/AndrewSimon/tf-files/actions/runs/$x/jobs
@@ -117,10 +118,10 @@ chmod +x /var/lib/cloud/instance/user-data.txt
 RESPONSE=$(curl -s -H "Authorization: token {GH_PAT}" -H "Accept: application/vnd.github.v3+json" "https://api.github.com/repos/{REPO_NAME}/actions/runs")
 
 # Use awk to parse the json and count runs
-# It looks for "status" key and counts if it is "queued" or "in_progress"
+# It looks for "status" key and counts if it is "queued"
 PENDING_COUNT=$(echo "$RESPONSE" | awk -F'[,:"]' '
     /"status":/ {{
-        if ($5 == "queued" || $5 == "in_progress") {{
+        if ($5 == "queued") {{
             count++
         }}
     }}
