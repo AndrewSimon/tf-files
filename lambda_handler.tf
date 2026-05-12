@@ -45,7 +45,10 @@ resource "local_file" "lambda_handler" {
 # This is a generated script by Terraform lambda_handler.tf
 
 import boto3
+import sys
+import time
 import logging
+import urllib3
 import hmac
 import hashlib
 import json
@@ -56,10 +59,8 @@ from hmac import compare_digest
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
+# Configure boto3 client and ec2 user-data variables
 EC2_CLIENT = boto3.client('ec2', region_name='${local.region_name}')
-# Right now, this deploys to whatever your 'default' vpc is set to in your account, 
-# not the one tf-files just created.  We default to Az 'f' in hopes of lower spot costs. 
-#
 AWS_REGION = '${local.region_name}'
 AMI_ID = '${var.ami_id}' # Technology Leadership's GHR AMI 
 INSTANCE_TYPE = '${var.instance_type}'
@@ -76,9 +77,15 @@ VOL_SIZE = ${var.volume_size} #Integer
 SPOT_MARKET = ${var.spot_market} #Boolean
 MAX = ${var.max_instances} #Integer
 VOLUME_TYPE = 'standard'
-
 MKT_OPT = "spot" if SPOT_MARKET else "on-demand"
-
+# Configure api.github.com http headers
+http = urllib3.PoolManager()
+gh_headers = {
+    "Authorization": f"Bearer {GH_PAT}",
+    "Accept": "application/vnd.github+json",
+    "X-GitHub-Api-Version": "2022-11-28",
+    "User-Agent": "urllib3-script"
+}
 USERDATA = f"""#!/bin/bash
 # Runner hook to complete dynamically provisioned instance lifecycle.
 # Because there is a configurable maximum number of runners, first check
@@ -90,7 +97,7 @@ curl -s -L -H "Accept: application/vnd.github+json" -H "Authorization: Bearer {G
 done | grep -e queued -e running |wc -l)
 export CNT=$(/home/gh-runner/bin/aws ec2 describe-instance-status --instance-ids $(/home/gh-runner/bin/aws ec2 describe-instances --filters "Name=tag:runner,Values=*" --query 'Reservations[].Instances[].InstanceId' --output text) --filters Name=instance-state-name,Values=running,pending --query "length(InstanceStatuses[?InstanceStatus.Status!='ok' || SystemStatus.Status!='ok'])")
 
-if (( $CNT > $QUEUED )) || (( $QUEUED == 0 )) || (( $CNT > 1 )) ; then
+if (( $CNT > $QUEUED )) || (( $QUEUED == 0 )) || (( $CNT >= 1 )) ; then
     echo "Server count $CNT is greater than jobs on the queue $QUEUED or QUEUED = 0 or CNT > 1, shutting down now"
     TOKEN=$(curl -s -X PUT 'http://169.254.169.254/latest/api/token' -H 'X-aws-ec2-metadata-token-ttl-seconds: 21600')
     INSTANCE_ID=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" 169.254.169.254/latest/meta-data/instance-id)
@@ -105,6 +112,26 @@ EOF
 echo ACTIONS_RUNNER_HOOK_JOB_COMPLETED=/home/gh-runner/bin/complete_lifecycle.sh >> /etc/environment
 chmod +x /home/gh-runner/bin/complete_lifecycle.sh
 chmod +x /var/lib/cloud/instance/user-data.txt
+
+# List workflow runs for a repo
+RESPONSE=$(curl -s -H "Authorization: token {GH_PAT}" -H "Accept: application/vnd.github.v3+json" "https://api.github.com/repos/{REPO_NAME}/actions/runs")
+
+# Use awk to parse the json and count runs
+# It looks for "status" key and counts if it is "queued" or "in_progress"
+PENDING_COUNT=$(echo "$RESPONSE" | awk -F'[,:"]' '
+    /"status":/ {{
+        if ($5 == "queued" || $5 == "in_progress") {{
+            count++
+        }}
+    }}
+    END {{ print count+0 }}
+')
+echo "Number of pending jobs: $PENDING_COUNT"
+if (( $PENDING_COUNT == 0 )) ; then
+  echo "No jobs pending, this runner is not needed, terminating in 5 seconds!"
+  sleep 5
+  shutdown -h now
+fi
 # Configure runner and connect to server
 export DEFAULT_MAX=1
 TOKEN=$(curl -s -X PUT 'http://169.254.169.254/latest/api/token' -H 'X-aws-ec2-metadata-token-ttl-seconds: 21600')
@@ -131,7 +158,6 @@ def validate_signature(github_signature, payload_body, secret_token):
     print("calculated:" + calculated_signature)    
     # Compare signatures using a timing-safe method
     return compare_digest(calculated_signature, expected_signature)
-
 
 def lambda_handler(event, context):
     """
@@ -222,6 +248,7 @@ def lambda_handler(event, context):
       'IamInstanceProfile': {
         'Name': PROFILE_NAME # Specify the profile name here
       },
+      'InstanceInitiatedShutdownBehavior': 'terminate',
       'UserData': USERDATA,
       'TagSpecifications' :[
           {

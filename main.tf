@@ -253,14 +253,14 @@ locals { repo = basename(var.repo_name) }
 resource "github_actions_secret" "account_id" {
   repository      = "${local.repo}"
   secret_name     = "ACCOUNT_ID"
-  plaintext_value = ""  # "${data.aws_caller_identity.current.account_id}" will store in GH
+  value = ""  # "${data.aws_caller_identity.current.account_id}" will store in GH
 }
 
 # Create a repository secret for Rancher (when using a workflow that installs it
 resource "github_actions_secret" "webhook_secret" {
   repository      = "${local.repo}"
   secret_name     = "WEBHOOK_SECRET_TOKEN"
-  plaintext_value = "${data.aws_ssm_parameter.gh_webhook_secret.value}"
+  value = "${data.aws_ssm_parameter.gh_webhook_secret.value}"
 }
 
 data "github_actions_registration_token" "spot_runner" {
