@@ -248,6 +248,7 @@ def lambda_handler(event, context):
       'IamInstanceProfile': {
         'Name': PROFILE_NAME # Specify the profile name here
       },
+      'InstanceInitiatedShutdownBehavior': 'terminate',
       'UserData': USERDATA,
       'TagSpecifications' :[
           {
