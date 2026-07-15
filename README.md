@@ -18,7 +18,7 @@ This is a terraform plan that:
 14. The github action installs dependencies, prints runner's OS (currently: Linux-5.15.0-101.103.2.1.el9uek.x86_64-x86_64-with-glibc2.34) and hostname, which discloses region instance is in.
 15. MOST IMPORTANTLY: Creates the ACTIONS_RUNNER_HOOK_JOB_COMPLETED lifecycle (termination) step via ec2 instance user-data
 16. Creates a lot of IAM policy documents and roles for steps 1-15 above to work
-17. Auto-magically adds GH Actions self-hosted EC2 runners to your Datadog Site (when using datadog branch)!
+17. Auto-magically adds GH Actions self-hosted EC2 runners to your Datadog Site (enabled when using valid datadog dd_site, api_key, app_key, and api_url values)!
 
 The Github Actions workflow comments describe the dependency install and how to modify to disable the Dynamic Runner life-cycle until reverted.  Life-cycle dependency on the repo job does return some control of the life-cycle from the 'administrator' back to the 'developer' using that repo.  Administrators need move only one step out of github actions to the user-data defined in terraform to remove non-Administrators' ability to disable the life-cycle.
 
@@ -33,7 +33,7 @@ The packages and setup required to be installed before starting are:
 <div>a. AWS Security Group CIDR list (Some public IPs are CUI)
 <BR/>b. GitHub PAT 
 <BR/>c. GitHub Webhook secret
-<BR/>d. Datadog API Key (Datadog site name is hard-coded, see below) </div> 
+<BR/>d. Datadog API Key (Datadog site name is hard-coded in config.tf, see below) </div> 
 6. An s3 bucket for the terraform 'backend' to use to store terraform state
 7. Subscription to the TLC Github Actions Runner AMI (alternate AMI's are unsupported).
 
@@ -81,7 +81,9 @@ SSM parameter store can be used for sensitive data like <i>F/W (SG) IP allow ran
 3. Click Create Parameter
 4. Create a StringList type parameter with name used in your terraform, currently <i>vpc_test2_default_sg_cidrs</i>
 5. Enter the CIDR list into values field, no spaces or quotes. E.g 123.123.123.123/32,224.242.224.0/24,10.0.0.0/16
-6. **Repeat** for github webhook secret (ssm parameter name expected is <i>gh_webhook_secret</i>); and/or datadog secrets (ssm parameter names expected are <i>dd_api_key</i> and <i>dd_app_key</i>, respectively).
+6. **Repeat** for github webhook secret (ssm parameter name expected is <i>gh_webhook_secret</i>); and/or datadog secrets (ssm parameter names expected are <i>dd_api_key</i> and <i>dd_app_key</i>, respectively).  Note that the variables.tf <i>dd_site</i> default value, and the config.tf <i>api_url</i> should always be the same - either a valid datadog url or empty double-quotes.
+7. TO SKIP DATADOG ENTIRELY: a. Set config.tf datadog provider to "dummy-values" for api_key and app_key, and set the api_url to empty double-quotes (e.g. ""), b. Set variables.tf dd_site variable to empty double-quotes, as well.
+
 
 ## tf-files Install Instructions
 1. Change directory to the location you want your terraform plan to be, usually your home directory
@@ -103,18 +105,18 @@ variables.tf:
 
 main.tf: Nothing needs to change. Optionally, change 'test2' to another VPC name, replace all occurrences of the string "test2" with a VPC name you like
 
-### For Datadog integration via datadog branch, only
-If you added valid DD_SITE and DD_TAGS from your datadog account, after you run terraform apply, you will have installed the <b>TLC Custom Dashboard Monitor</b> and be able to monitor the key performance metrics of your GHR Action Runners, in real-time. Log into your Datadog account, click the <b>Dashboards</b> link in the side menu, find TLC's Custom Dashboard Monitor, and click to launch.  
+### For Datadog integration
+If you added valid DD_SITE and DD_TAGS from your datadog account and the terraform apply completes, you will have installed the <b>TLC Custom Dashboard Monitor</b> and be able to monitor the key performance metrics of your GHR Action Runners, in real-time. Log into your Datadog account, click the <b>Dashboards</b> link in the side menu, find TLC's Custom Dashboard Monitor, and click to launch.  
 
-NOTE: It takes about 5 to 10 minutes for GHR and Datadog Agent installs.  TF-Files default wprkflow will run an additional 7 minutes or so as it runs the AWS CLI install and a 5 minute timer.
+NOTE: It takes about 5 to 10 minutes for GHR and Datadog Agent installs.  TF-Files default workflow will run an additional 7 minutes or so as it runs the AWS CLI install and a 5 minute timer.
 
 
 lambda_handler.tf:
-1. For now, datadog site (DD_SITE) is hard-coded in 2 places. I set it to us5.datadoghq.com. Replace with your datadog site, if not us5.datadoghq.com.
+1. Datadog site (DD_SITE) is coded in 2 places. Replace config.tf api_url and variables.tf dd_site with your datadog site, otherwise, ensure datadog is disabled via dd_site value of empty (no spaces) double-quotes ("").
 2. OPTIONAL: The environment is hard-coded to 'prod' via (DD_TAGS) 'env:prod'.  Update to your organization's environment nomenclature and name, if desired.
 
 config.tf:
-1. Change api_url value to your datadog site api url, if not https://us5.datadoghq.com
+1. Change api_url value to your datadog site api url, if not https://us5.datadoghq.com.  Add valid api_key and app_key to ssm parameter store.  Use empty double-quotes (no spaces) to disable datadog.  Replace the ssm parameter store variables in config.tf for app_key and api_key with hard-coded "dummy-value", in double-quotes if not using datadog.
 
 dd_dashboard.tf:
 1. To get valid alert ids, in our browser, navigate to https://<your-datadog-site>/monitors/manage?p=1

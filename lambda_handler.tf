@@ -1,4 +1,4 @@
-# Public 1F from AZ us-east-1f has lower spot prices.
+   # Public 1F from AZ us-east-1f has lower spot prices.
 data "aws_vpc" "main" {
   tags = {
     Name = var.vpc_name
@@ -78,7 +78,7 @@ SPOT_MARKET = ${var.spot_market} #Boolean
 MAX = ${var.max_instances} #Integer
 VOLUME_TYPE = 'standard'
 DD_API_KEY = '${data.aws_ssm_parameter.dd_api_key.value}'
-DD_SITE = 'us5.datadoghq.com'
+DD_SITE = '${var.dd_site}'
 DD_TAGS = 'env:prod'
 
 MKT_OPT = "spot" if SPOT_MARKET else "on-demand"
@@ -117,12 +117,14 @@ echo ACTIONS_RUNNER_HOOK_JOB_COMPLETED=/home/gh-runner/bin/complete_lifecycle.sh
 chmod +x /home/gh-runner/bin/complete_lifecycle.sh
 chmod +x /var/lib/cloud/instance/user-data.txt
 
-# Set up Datadog
+# Set up Datadog if DD_SITE is not "NA"
+export SITE="{DD_SITE}"
+if [ "$SITE" != "" ]; then
 DD_API_KEY="{DD_API_KEY}" DD_SITE="{DD_SITE}" bash -c "$(curl -L https://install.datadoghq.com/scripts/install_script_agent7.sh)"
 echo "site: {DD_SITE}" >> /etc/datadog-agent/datadog.yaml
 firewall-cmd --permanent --add-port=5001/tcp
 systemctl restart datadog-agent 
-
+fi
 # List workflow runs for a repo
 RESPONSE=$(curl -s -H "Authorization: token {GH_PAT}" -H "Accept: application/vnd.github.v3+json" "https://api.github.com/repos/{REPO_NAME}/actions/runs")
 

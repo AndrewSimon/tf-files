@@ -1,5 +1,7 @@
 # Example Ordered Layout
 resource "datadog_dashboard" "ordered_dashboard" {
+  # If the dd_site string is empty, skip resource
+  count = var.dd_site == "" ? 0 : 1
   title       = "TLC's Custom Dashboard Monitor"
   description = "Created using the Datadog provider in Terraform"
   layout_type = "ordered"

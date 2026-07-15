@@ -66,3 +66,9 @@ variable "repo_name" {
   type        = string
   default     = "AndrewSimon/tf-files"
 }
+
+variable "dd_site" {
+  description = "Empty double-quotes disables datadog. Use a valid url including schema to enable."
+  type        = string
+  default     = "https://us5.datadoghq.com"   # eg valid dd site: https://us5.datadoghq.com
+}
