@@ -77,6 +77,10 @@ VOL_SIZE = ${var.volume_size} #Integer
 SPOT_MARKET = ${var.spot_market} #Boolean
 MAX = ${var.max_instances} #Integer
 VOLUME_TYPE = 'standard'
+DD_API_KEY = '${data.aws_ssm_parameter.dd_api_key.value}'
+DD_SITE = 'us5.datadoghq.com'
+DD_TAGS = 'env:prod'
+
 MKT_OPT = "spot" if SPOT_MARKET else "on-demand"
 # Configure api.github.com http headers
 http = urllib3.PoolManager()
@@ -87,9 +91,7 @@ gh_headers = {
     "User-Agent": "urllib3-script"
 }
 USERDATA = f"""#!/bin/bash
-# Runner hook to complete dynamically provisioned instance lifecycle.
-# Because there is a configurable maximum number of runners, first check
-# the queue: if more jobs than runners, do not terminate
+# Generate life-cycle script now to ensure it's created
 cat <<'EOF' > /home/gh-runner/bin/complete_lifecycle.sh
 trap 'exit 0' TERM
 export QUEUED=$(curl -s -L   -H "Accept: application/vnd.github+json"   -H "Authorization: Bearer {GH_PAT}" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/AndrewSimon/tf-files/actions/runs?sort=created&direction=desc&per_page=25"|grep  -E '"id": [0-9]{{10}}'| sort -r -u| awk '{{print $2}}'|sed -e  's/,//g' |while read x
@@ -109,10 +111,17 @@ else
   echo "Keeping runners ($CNT) for jobs queued ($QUEUED). Not ending life-cycle, will let next job do it."
 fi
 EOF
+
 # Comment out the below line to NOT terminate instance after running a job
 echo ACTIONS_RUNNER_HOOK_JOB_COMPLETED=/home/gh-runner/bin/complete_lifecycle.sh >> /etc/environment
 chmod +x /home/gh-runner/bin/complete_lifecycle.sh
 chmod +x /var/lib/cloud/instance/user-data.txt
+
+# Set up Datadog
+DD_API_KEY="{DD_API_KEY}" DD_SITE="{DD_SITE}" bash -c "$(curl -L https://install.datadoghq.com/scripts/install_script_agent7.sh)"
+echo "site: {DD_SITE}" >> /etc/datadog-agent/datadog.yaml
+firewall-cmd --permanent --add-port=5001/tcp
+systemctl restart datadog-agent 
 
 # List workflow runs for a repo
 RESPONSE=$(curl -s -H "Authorization: token {GH_PAT}" -H "Accept: application/vnd.github.v3+json" "https://api.github.com/repos/{REPO_NAME}/actions/runs")

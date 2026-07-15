@@ -28,6 +28,16 @@ data "aws_ssm_parameter" "gh_webhook_secret" {
       with_decryption = true
 }
 
+# Datadog integration
+data "aws_ssm_parameter" "dd_app_key" {
+      name = "dd_app_key"
+      with_decryption = true
+}
+data "aws_ssm_parameter" "dd_api_key" {
+      name = "dd_api_key"
+      with_decryption = true
+}
+
 # Apply this first! terraform apply -target aws_vpc.test2
 resource "aws_vpc" "test2" {
   cidr_block = "192.168.10.0/24"
