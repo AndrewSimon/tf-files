@@ -117,11 +117,11 @@ echo ACTIONS_RUNNER_HOOK_JOB_COMPLETED=/home/gh-runner/bin/complete_lifecycle.sh
 chmod +x /home/gh-runner/bin/complete_lifecycle.sh
 chmod +x /var/lib/cloud/instance/user-data.txt
 
-# Set up Datadog if DD_SITE is not "NA"
-export SITE="{DD_SITE}"
+# Set up Datadog if DD_SITE is not "" - remove schema first
+export SITE="$(echo {DD_SITE}|cut -d '/' -f3)"
 if [ "$SITE" != "" ]; then
 DD_API_KEY="{DD_API_KEY}" DD_SITE="{DD_SITE}" bash -c "$(curl -L https://install.datadoghq.com/scripts/install_script_agent7.sh)"
-echo "site: {DD_SITE}" >> /etc/datadog-agent/datadog.yaml
+echo "site: $SITE" >> /etc/datadog-agent/datadog.yaml
 firewall-cmd --permanent --add-port=5001/tcp
 systemctl restart datadog-agent 
 fi
