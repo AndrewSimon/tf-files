@@ -32,7 +32,8 @@ data "aws_subnet" "public_details" {
 # which is public by tf plan
 locals {
   subnet_list = [for s in data.aws_subnet.public_details : s.id]
-    spot_subnet = coalesce(join(",", local.subnet_list), aws_subnet.Public_1D[0].id, "PLEASE SET A NEW OR DIFFERENT var.spot_subnet_tag VALUE BY OVERRIDE TO GET A VALID SPOT SUBNET")
+  spot_subnet = coalesce(join(",", local.subnet_list), aws_subnet.Public_1D[0].id, "PLEASE SET A NEW OR DIFFERENT var.spot_subnet_tag VALUE BY OVERRIDE TO GET A VALID SPOT SUBNET")
+  dd_apikey =   try(data.aws_ssm_parameter.dd_api_key.value, "dummy-value")  
   depends_on = [
     local.vpc_id
   ]
@@ -77,7 +78,7 @@ VOL_SIZE = ${var.volume_size} #Integer
 SPOT_MARKET = ${var.spot_market} #Boolean
 MAX = ${var.max_instances} #Integer
 VOLUME_TYPE = 'standard'
-DD_API_KEY = '${data.aws_ssm_parameter.dd_api_key.value}'
+DD_API_KEY = '${local.dd_apikey}'
 DD_SITE = '${var.dd_site}'
 DD_TAGS = 'env:prod'
 

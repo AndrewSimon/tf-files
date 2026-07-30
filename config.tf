@@ -30,10 +30,10 @@ terraform {
 }
 
 provider "datadog" {
-  api_key = "${data.aws_ssm_parameter.dd_api_key.value}" # use "dummy-value" to skip dd ssm param setup
-  app_key = "${data.aws_ssm_parameter.dd_app_key.value}" # use "dummy-value" to skip dd ssm param setup
-  api_url = "https://us5.datadoghq.com" # use "" to skip dd client install in user-data
-  validate = true # Set this to false when skipping datadog installation
+  api_key = "dummy-value" # "${data.aws_ssm_parameter.dd_api_key.value}" # use "dummy-value" to skip dd ssm param setup
+  app_key = "dummy-value" #"${data.aws_ssm_parameter.dd_app_key.value}" # use "dummy-value" to skip dd ssm param setup
+  api_url = "${var.dd_site}" # use "" to skip dd client install in user-data
+  validate = false # Set this to false when skipping datadog installation
 }
 
 provider "local" {}
