@@ -33,9 +33,11 @@ data "aws_ssm_parameter" "dd_app_key" {
       name = "dd_app_key"
       with_decryption = true
 }
-data "aws_ssm_parameter" "dd_api_key" {
-      name = "dd_api_key"
-      with_decryption = true
+
+data "aws_ssm_parameters_by_path" "dd_api_key" {
+  path = "/"
+  with_decryption = true
+  recursive = false # Update the path above if not at root, please no recursive search 
 }
 
 # Apply this first! terraform apply -target aws_vpc.test2
@@ -50,9 +52,6 @@ resource "aws_vpc" "test2" {
 locals {
 # If test2 vpc, TLC instance exists set bool 1 > 0 (true)
   vpc_exists      = length(data.aws_vpcs.existing.ids) > 0
-#  instance_exists = length(data.aws_instances.existing.ids) > 0
-# If bool true get vpc id, if false get from new vpc source
-  #vpc_id = local.vpc_exists ? data.aws_vpcs.existing.ids[0] : one(aws_vpc.test2[*].id)
   vpc_id = try(data.aws_vpcs.existing.ids[0], null) 
   region_name    = data.aws_region.current.region
   vpc_count      = length(data.aws_vpcs.existing.ids)
@@ -169,6 +168,7 @@ resource "aws_route_table_association" "Public_1D" {
   route_table_id = aws_route_table.public_route_table[0].id
 }
 resource "aws_route_table_association" "Public_1F" {
+  # Ensuring greater than 5 az ensures we need an F route table, if vpc has been created
   count = local.az_count > 5 && local.vpc_id != null && local.vpc_id != "" ? 1 : 0
   subnet_id      = aws_subnet.Public_1F[0].id
   route_table_id = aws_route_table.public_route_table[0].id   
@@ -283,4 +283,3 @@ output "spot_subnet" {
 output "other_values" {
   value = "${aws_subnet.Public_1D[0].id}, ${var.aws_subnet_tag}, ${var.volume_size}, ${var.spot_market}"
 }
-

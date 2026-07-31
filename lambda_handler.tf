@@ -10,7 +10,6 @@ data "aws_vpc" "main" {
 
 #Used by boto3 once there is a public IP
 data "aws_subnets" "public" {
-# count = length(data.aws_vpcs.existing.ids) > 0 ? 1 : 0
   filter {
     name   = "vpc-id"
     values = [data.aws_vpc.main.id] 
@@ -28,14 +27,20 @@ data "aws_subnet" "public_details" {
   id       = each.value
 }
 
-# In hopes of lowest spot price, AZ is the last subnet in VPC, 
-# which is public by tf plan
+# In hopes of lowest spot price, use last subnet in VPC, which is public by tf plan
 locals {
   subnet_list = [for s in data.aws_subnet.public_details : s.id]
   spot_subnet = coalesce(join(",", local.subnet_list), aws_subnet.Public_1D[0].id, "PLEASE SET A NEW OR DIFFERENT var.spot_subnet_tag VALUE BY OVERRIDE TO GET A VALID SPOT SUBNET")
-  dd_apikey =   try(data.aws_ssm_parameter.dd_api_key.value, "dummy-value")  
+  # Build an ssm parameter store map of path defined in data resource, using zmap. Thanks AI!
+  ssm_map = zipmap(
+    data.aws_ssm_parameters_by_path.dd_api_key.names,
+    data.aws_ssm_parameters_by_path.dd_api_key.values
+  )
+  # Fetch value if key found, else use 'dummy-value'. Don't create a real aws parameter store using fake values. 
+  dd_apikey = lookup(local.ssm_map, "dd_api_key", "dummy-value")
   depends_on = [
-    local.vpc_id
+    local.vpc_id,
+    data.aws_ssm_parameters_by_path.dd_api_key
   ]
 }
 
@@ -77,8 +82,8 @@ REPO_NAME = '${var.repo_name}'
 VOL_SIZE = ${var.volume_size} #Integer
 SPOT_MARKET = ${var.spot_market} #Boolean
 MAX = ${var.max_instances} #Integer
-VOLUME_TYPE = 'standard'
-DD_API_KEY = '${local.dd_apikey}'
+VOLUME_TYPE = 'standard' #ie magnetic, it is cheapest.  Hard-code for gp2 or gp3 for SSD
+DD_API_KEY = '${local.dd_apikey}' #If in SSM, will use value, otherwise defaults to 'dummy-value'
 DD_SITE = '${var.dd_site}'
 DD_TAGS = 'env:prod'
 
