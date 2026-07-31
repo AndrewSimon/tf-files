@@ -238,7 +238,7 @@ def lambda_handler(event, context):
         logger.info(f"Found {instance_count} existing instance(s) with tag '{TAG_KEY}'. No new instance launched.")
         return {
             'statusCode': 200,
-            'body': f"Found {instance_count} instances running while {MAX} allowed, no new instances launched."
+            'body': f"Found {instance_count} instances running while {MAX} allowed, no new instances launched.\nNo worries! The last runner keeps running until all queued jobs are completed."
         }
 
     # Update USERDATA tags with marketplace option, max count and current existing count
