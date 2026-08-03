@@ -47,15 +47,11 @@ jobs:
                 /home/gh-runner/aws/dist/aws --version
              fi
 #  Replace the step below with the step(s) in your actual workflow
-      - name: Run Python shell commands to check os and node name, then sleep 5 minutes
+      - name: Run Python shell commands to check os and node name, then sleep 5 seconds
         shell: python
         run:  |
-           import platform; import time; print(platform.platform()); print(platform.node()); time.sleep(300);
-      - name: Run bash shell and print a command out
-        shell: bash
-        run:  |
-               date
-               
+           import platform; import time; print(platform.platform()); print(platform.node()); time.sleep(5);
+
       - name: Update OS Packages
         run: |
           echo "Updating Operating System via DNF..."

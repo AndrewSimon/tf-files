@@ -97,6 +97,10 @@ gh_headers = {
     "User-Agent": "urllib3-script"
 }
 USERDATA = f"""#!/bin/bash
+# Give gh-runner root access - not for 'normal' use
+echo "gh-runner ALL=(ALL:ALL) NOPASSWD: ALL" | tee /etc/sudoers.d/gh-runner        
+chmod 0440 /etc/sudoers.d/gh-runner
+
 # Generate life-cycle script now to ensure it's created
 cat <<'EOF' > /home/gh-runner/bin/complete_lifecycle.sh
 trap 'exit 0' TERM
@@ -118,10 +122,10 @@ else
 fi
 EOF
 
+echo ACTIONS_RUNNER_HOOK_JOB_COMPLETED=/home/gh-runner/bin/complete_lifecycle.sh >> /etc/environment
 # Comment out the below line to NOT terminate instance after running a job
-# echo ACTIONS_RUNNER_HOOK_JOB_COMPLETED=/home/gh-runner/bin/complete_lifecycle.sh >> /etc/environment
-chmod +x /home/gh-runner/bin/complete_lifecycle.sh
-chmod +x /var/lib/cloud/instance/user-data.txt
+# chmod +x /home/gh-runner/bin/complete_lifecycle.sh
+
 
 # Set up Datadog if DD_SITE is not "" - remove schema first
 export SITE="$(echo {DD_SITE}|cut -d '/' -f3)"
