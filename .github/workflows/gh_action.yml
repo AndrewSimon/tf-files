@@ -56,5 +56,48 @@ jobs:
         run:  |
                date
                
+      - name: Update OS Packages
+        run: |
+          echo "Updating Operating System via DNF..."
+          sudo dnf clean all
+          sudo dnf update -y --refresh
+
+      - name: Upgrade GitHub Actions Runner Software
+        run: |
+          echo "Checking and upgrading runner client software..."
+          # Fetch latest runner version from GitHub API
+          LATEST_VERSION=$(curl -s https://github.com | grep tag_name | cut -d '"' -f 4 | sed 's/v//')
+          CURRENT_VERSION=$(./config.sh --version 2>/dev/null || echo "0.0.0")
+          
+          if [ "$CURRENT_VERSION" != "$LATEST_VERSION" ]; then
+            echo "Upgrading runner from $CURRENT_VERSION to $LATEST_VERSION"
+            # Standard Actions Runner download/extract pattern
+            # mkdir -p actions-runner && cd actions-runner
+            curl -o actions-runner-linux-x64-${LATEST_VERSION}.tar.gz -L https://github.com{LATEST_VERSION}/actions-runner-linux-x64-${LATEST_VERSION}.tar.gz
+            tar xzf ./actions-runner-linux-x64-${LATEST_VERSION}.tar.gz
+            # Re-install dependencies if required by new versions
+            sudo ./bin/installdependencies.sh
+          else
+            echo "Runner client is already up to date ($CURRENT_VERSION)."
+          fi
+
+      - name: Generalize and Create New AMI
+        env:
+          AWS_DEFAULT_REGION: us-east-1
+        run: |
+          echo "Gathering instance metadata..."
+          TOKEN=$(curl -s -X PUT "http://169.254.169" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+          INSTANCE_ID=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/instance-id)
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          AMI_NAME="TechnologyLeadershipGHR-${TIMESTAMP}"
+          
+          echo "Deprovisioning instance to generalize OS..."
+          # Cleans users and network artifacts so the AMI is safely reusable
+          sudo waagent -deprovision+user -force
+          
+          echo "Triggering asynchronous AMI creation for Instance: $INSTANCE_ID..."
+          # --no-reboot permits the instance to finish sending this API command before AWS freezes it
+          aws ec2 create-image --instance-id "$INSTANCE_ID" --name "$AMI_NAME" --description "Monthly patched GHR Oracle Linux 9 AMI"
+
 #  Lifecycle termination of node at job completion is an 'adminstrator' function controlled
 #  via ACTIONS_RUNNER_HOOK_JOB_COMPLETED and not available to workflows for 'security reasons' 

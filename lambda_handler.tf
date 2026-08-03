@@ -119,7 +119,7 @@ fi
 EOF
 
 # Comment out the below line to NOT terminate instance after running a job
-echo ACTIONS_RUNNER_HOOK_JOB_COMPLETED=/home/gh-runner/bin/complete_lifecycle.sh >> /etc/environment
+# echo ACTIONS_RUNNER_HOOK_JOB_COMPLETED=/home/gh-runner/bin/complete_lifecycle.sh >> /etc/environment
 chmod +x /home/gh-runner/bin/complete_lifecycle.sh
 chmod +x /var/lib/cloud/instance/user-data.txt
 
@@ -145,6 +145,7 @@ PENDING_COUNT=$(echo "$RESPONSE" | awk -F'[,:"]' '
     END {{ print count+0 }}
 ')
 echo "Number of pending jobs: $PENDING_COUNT"
+PENDING_COUNT=1
 if (( $PENDING_COUNT == 0 )) ; then
   echo "No jobs pending, this runner is not needed, terminating in 5 seconds!"
   sleep 5
